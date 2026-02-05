@@ -15,7 +15,10 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    save_dir = detector.save_dir
+    images = [f for f in os.listdir(save_dir) if f.endswith('.jpg')]
+    images.sort(reverse=True)  # Newest first
+    return render_template('index.html', images=images)
 
 @app.route('/start')
 def start():
@@ -33,15 +36,6 @@ def stop():
         flash("Motion detection stopped.")
     except Exception as e:
         flash(f"Failed to stop motion detection: {str(e)}")
-    return redirect(url_for('index'))
-
-@app.route('/capture')
-def capture():
-    filename = detector.capture_image()
-    if filename:
-        flash("Image captured successfully!")
-    else:
-        flash("Failed to capture image.")
     return redirect(url_for('index'))
 
 @app.route('/images')
