@@ -12,6 +12,7 @@ CONTOUR_THRESHOLD = 1000  # Minimum contour area for motion detection
 BLUR_KERNEL = (31, 31)  # Gaussian blur kernel size
 THRESH_VALUE = 50  # Threshold value for binary threshold
 DILATE_ITERATIONS = 2  # Dilate iterations
+MOTION_COOLDOWN_SECONDS = 60  # Minimum seconds between motion captures
 
 # Scheduler settings
 SCHEDULER_INTERVAL_HOURS = 1  # Hours between scheduled captures
