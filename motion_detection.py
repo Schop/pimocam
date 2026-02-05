@@ -95,10 +95,6 @@ class MotionDetector:
 detector = MotionDetector()
 scheduler = BackgroundScheduler()
 
-# Scheduled capture
-scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", hours=SCHEDULER_INTERVAL_HOURS)
-scheduler.start()
-
 def main():
     detector.start()
     try:
