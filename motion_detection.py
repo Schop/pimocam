@@ -27,10 +27,12 @@ def cleanup_old_files(directory, min_free_gb=MIN_FREE_GB):
 def sync_to_gdrive():
     try:
         # Sync pictures
-        subprocess.run(['rclone', 'sync', SAVE_DIR, 'gdrive:/PiMotion/pictures', '--log-level', 'INFO'])
+        result1 = subprocess.run(['rclone', 'sync', SAVE_DIR, 'GDrive:/PiMotion/pictures', '--log-level', 'INFO'], check=True)
         # Sync timelapse
-        subprocess.run(['rclone', 'sync', TIME_LAPSE_DIR, 'gdrive:/PiMotion/timelapse', '--log-level', 'INFO'])
+        result2 = subprocess.run(['rclone', 'sync', TIME_LAPSE_DIR, 'GDrive:/PiMotion/timelapse', '--log-level', 'INFO'], check=True)
         print("Synced to Google Drive")
+    except subprocess.CalledProcessError as e:
+        print(f"Sync error: {e}")
     except Exception as e:
         print(f"Sync error: {e}")
 
