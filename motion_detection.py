@@ -84,9 +84,13 @@ class MotionDetector:
     def capture_timelapse(self):
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
-        subprocess.run(['rpicam-still', '-o', filename, '--width', str(MAIN_RES[0]), '--height', str(MAIN_RES[1])])
-        print(f"Timelapse captured: {filename}")
-        return filename
+        result = subprocess.run(['rpicam-still', '-o', filename, '--width', str(MAIN_RES[0]), '--height', str(MAIN_RES[1])])
+        if result.returncode == 0:
+            print(f"Timelapse captured: {filename}")
+            return filename
+        else:
+            print(f"Failed to capture timelapse: camera busy or error")
+            return None
 
 # Global instances
 detector = MotionDetector()
