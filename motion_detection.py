@@ -5,6 +5,7 @@ import time
 import os
 import threading
 import shutil
+import subprocess
 from apscheduler.schedulers.background import BackgroundScheduler
 from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_MINUTES, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS, MIN_FREE_GB
 
@@ -22,6 +23,16 @@ def cleanup_old_files(directory, min_free_gb=MIN_FREE_GB):
                 free_gb = shutil.disk_usage('/').free / (1024**3)
             except OSError as e:
                 print(f"Error deleting {oldest}: {e}")
+
+def sync_to_gdrive():
+    try:
+        # Sync pictures
+        subprocess.run(['rclone', 'sync', SAVE_DIR, 'gdrive:/PiMotion/pictures', '--log-level', 'INFO'])
+        # Sync timelapse
+        subprocess.run(['rclone', 'sync', TIME_LAPSE_DIR, 'gdrive:/PiMotion/timelapse', '--log-level', 'INFO'])
+        print("Synced to Google Drive")
+    except Exception as e:
+        print(f"Sync error: {e}")
 
 class MotionDetector:
     def __init__(self):
