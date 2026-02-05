@@ -18,7 +18,10 @@ DILATE_ITERATIONS = 2  # Dilate iterations
 MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 
 # Scheduler settings
-SCHEDULER_INTERVAL_MINUTES = 1  # Minutes between scheduled captures (1 minute)
+SCHEDULER_INTERVAL_MINUTES = 30  # Minutes between scheduled captures (30 minutes)
+
+# Disk cleanup settings
+MIN_FREE_GB = 1.0  # Minimum free disk space in GB before deleting old files
 
 # Webserver settings
 WEBSERVER_HOST = '0.0.0.0'

@@ -6,9 +6,9 @@ import os
 import threading
 import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
-from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_MINUTES, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS
+from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_MINUTES, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS, MIN_FREE_GB
 
-def cleanup_old_files(directory, min_free_gb=1.0):
+def cleanup_old_files(directory, min_free_gb=MIN_FREE_GB):
     """Delete oldest files in directory if free disk space is below min_free_gb"""
     free_gb = shutil.disk_usage('/').free / (1024**3)
     if free_gb < min_free_gb:
