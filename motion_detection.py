@@ -5,7 +5,7 @@ import time
 import os
 import threading
 from apscheduler.schedulers.background import BackgroundScheduler
-from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_HOURS, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS
+from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_MINUTES, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS
 
 class MotionDetector:
     def __init__(self):
@@ -84,9 +84,13 @@ class MotionDetector:
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
         if self.picam2:
-            self.picam2.capture_file(filename)
-            print(f"Timelapse captured: {filename}")
-            return filename
+            try:
+                self.picam2.capture_file(filename)
+                print(f"Timelapse captured: {filename}")
+                return filename
+            except Exception as e:
+                print(f"Error capturing timelapse: {e}")
+                return None
         else:
             print("Camera not initialized for timelapse")
             return None
