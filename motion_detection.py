@@ -81,6 +81,7 @@ class MotionDetector:
         return filename
 
     def capture_timelapse(self):
+        print("Timelapse job triggered")
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
         if self.picam2:

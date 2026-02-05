@@ -78,7 +78,11 @@ def get_image(filename):
 if __name__ == '__main__':
     from motion_detection import scheduler
     from settings import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_DEBUG, SCHEDULER_INTERVAL_MINUTES
+    print("Starting detector...")
     detector.start()
+    print("Adding timelapse job...")
     scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=SCHEDULER_INTERVAL_MINUTES)
+    print("Starting scheduler...")
     scheduler.start()
+    print("Starting webserver...")
     app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT, debug=WEBSERVER_DEBUG)
