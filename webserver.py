@@ -67,36 +67,7 @@ def settings_page():
     settings_dict = load_settings()
     return render_template('settings.html', settings=settings_dict, readonly=readonly, message=message)
 
-# Service restart endpoint
-@app.route('/restart', methods=['POST'])
-def restart_service():
-    import subprocess
-    try:
-        # Replace with your actual service name
-        service_name = 'pimotion.service'
-        subprocess.run(['sudo', 'systemctl', 'restart', service_name], check=True)
-        message = 'Service restart requested.'
-    except Exception as e:
-        message = f'Failed to restart service: {e}'
-    settings_dict = load_settings()
-    readonly = ['SAVE_DIR', 'TIME_LAPSE_DIR']
-    return render_template('settings.html', settings=settings_dict, readonly=readonly, message=message)
-from flask import Flask, jsonify, send_from_directory, render_template, flash, redirect, url_for
-from motion_detection import detector
-import os
-import logging
-import shutil
-from datetime import datetime
 
-app = Flask(__name__, template_folder='templates')
-app.secret_key = 'your_secret_key'  # Needed for flashing messages
-
-# Disable Flask request logging to reduce spam
-log = logging.getLogger('werkzeug')
-log.disabled = True
-app.logger.disabled = True
-
-app = Flask(__name__)
 
 @app.route('/')
 def index():
