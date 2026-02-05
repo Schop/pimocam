@@ -7,6 +7,10 @@ from datetime import datetime
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'  # Needed for flashing messages
 
+@app.template_filter('strftime')
+def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
+    return value.strftime(format)
+
 # Disable Flask request logging to reduce spam
 log = logging.getLogger('werkzeug')
 log.disabled = True
