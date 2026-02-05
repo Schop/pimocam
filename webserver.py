@@ -35,7 +35,11 @@ def capture():
 def list_images():
     save_dir = detector.save_dir
     images = [f for f in os.listdir(save_dir) if f.endswith('.jpg')]
-    return jsonify(images)
+    images.sort(reverse=True)  # Sort by name descending (newest first, assuming timestamped names)
+    html = '<h1>Images</h1><a href="/">Back to Control</a><br><br>'
+    for img in images:
+        html += f'<a href="/images/{img}"><img src="/images/{img}" width="200" style="margin:5px;"></a>'
+    return html
 
 @app.route('/images/<filename>')
 def get_image(filename):
