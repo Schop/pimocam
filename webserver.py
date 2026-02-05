@@ -16,9 +16,19 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     save_dir = detector.save_dir
-    images = [f for f in os.listdir(save_dir) if f.endswith('.jpg')]
-    images.sort(reverse=True)  # Newest first
+    images = []
+    for f in os.listdir(save_dir):
+        if f.endswith('.jpg'):
+            path = os.path.join(save_dir, f)
+            size = os.path.getsize(path)
+            mtime = os.path.getmtime(path)
+            images.append({'name': f, 'size': size, 'mtime': mtime})
+    images.sort(key=lambda x: x['mtime'], reverse=True)  # Newest first
     return render_template('index.html', images=images)
+
+@app.route('/view/<filename>')
+def view_image(filename):
+    return render_template('view.html', filename=filename)
 
 @app.route('/start')
 def start():
