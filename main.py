@@ -6,6 +6,8 @@ from settings import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_DEBUG
 if __name__ == '__main__':
     # Start motion detection
     detector.start()
+    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=0.1)
+    scheduler.start()
     try:
         # Run webserver
         app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT, debug=WEBSERVER_DEBUG)
