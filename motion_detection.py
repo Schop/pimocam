@@ -21,19 +21,23 @@ class MotionDetector:
         if self.running:
             return
         self.running = True
-        self.picam2 = Picamera2()
-        config = self.picam2.create_preview_configuration(main={"size": MAIN_RES, "format": "RGB888"}, lores={"size": LORES_RES})
-        self.picam2.configure(config)
-        self.picam2.start()
-        time.sleep(2)
-        # Capture first frame
-        frame1_yuv = self.picam2.capture_array("lores")
-        frame1_color = cv2.cvtColor(frame1_yuv, cv2.COLOR_YUV2RGB_I420)
-        self.frame1 = cv2.cvtColor(frame1_color, cv2.COLOR_BGR2GRAY)
-        self.frame1 = cv2.GaussianBlur(self.frame1, BLUR_KERNEL, 0)
-        print("Motion detection started.")
-        self.thread = threading.Thread(target=self._detect_loop)
-        self.thread.start()
+        try:
+            self.picam2 = Picamera2()
+            config = self.picam2.create_preview_configuration(main={"size": MAIN_RES, "format": "RGB888"}, lores={"size": LORES_RES})
+            self.picam2.configure(config)
+            self.picam2.start()
+            time.sleep(2)
+            # Capture first frame
+            frame1_yuv = self.picam2.capture_array("lores")
+            frame1_color = cv2.cvtColor(frame1_yuv, cv2.COLOR_YUV2RGB_I420)
+            self.frame1 = cv2.cvtColor(frame1_color, cv2.COLOR_BGR2GRAY)
+            self.frame1 = cv2.GaussianBlur(self.frame1, BLUR_KERNEL, 0)
+            print("Motion detection started.")
+            self.thread = threading.Thread(target=self._detect_loop)
+            self.thread.start()
+        except RuntimeError as e:
+            print(f"Failed to start camera: {e}")
+            self.running = False
 
     def stop(self):
         self.running = False
