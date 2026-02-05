@@ -1,3 +1,72 @@
+from flask import request
+import importlib
+import sys
+import re
+# Helper to load settings as dict
+def load_settings():
+    import settings
+    # Only show editable settings (not imported modules, etc.)
+    keys = [k for k in dir(settings) if k.isupper() and not k.startswith('__')]
+    return {k: getattr(settings, k) for k in keys}
+
+# Helper to update settings.py file
+def update_settings(new_settings):
+    settings_path = os.path.join(os.path.dirname(__file__), 'settings.py')
+    with open(settings_path, 'r') as f:
+        lines = f.readlines()
+    for i, line in enumerate(lines):
+        m = re.match(r'^(\w+)\s*=\s*(.+)', line)
+        if m:
+            key = m.group(1)
+            if key in new_settings:
+                val = new_settings[key]
+                # Try to keep type (int/float/str/tuple)
+                if val.isdigit():
+                    val_str = val
+                else:
+                    try:
+                        float(val)
+                        val_str = val
+                    except:
+                        if val.startswith('(') and val.endswith(')'):
+                            val_str = val
+                        else:
+                            val_str = f'"{val}"'
+                lines[i] = f'{key} = {val_str}\n'
+    with open(settings_path, 'w') as f:
+        f.writelines(lines)
+
+# Settings page (GET: view, POST: update)
+@app.route('/settings', methods=['GET', 'POST'])
+def settings_page():
+    message = None
+    readonly = ['SAVE_DIR', 'TIME_LAPSE_DIR']
+    if request.method == 'POST':
+        # Only update editable settings
+        editable = [k for k in load_settings().keys() if k not in readonly]
+        new_settings = {k: request.form[k] for k in editable if k in request.form}
+        update_settings(new_settings)
+        # Reload settings module
+        if 'settings' in sys.modules:
+            importlib.reload(sys.modules['settings'])
+        message = 'Settings updated!'
+    settings_dict = load_settings()
+    return render_template('settings.html', settings=settings_dict, readonly=readonly, message=message)
+
+# Service restart endpoint
+@app.route('/restart', methods=['POST'])
+def restart_service():
+    import subprocess
+    try:
+        # Replace with your actual service name
+        service_name = 'pimotion.service'
+        subprocess.run(['sudo', 'systemctl', 'restart', service_name], check=True)
+        message = 'Service restart requested.'
+    except Exception as e:
+        message = f'Failed to restart service: {e}'
+    settings_dict = load_settings()
+    readonly = ['SAVE_DIR', 'TIME_LAPSE_DIR']
+    return render_template('settings.html', settings=settings_dict, readonly=readonly, message=message)
 from flask import Flask, jsonify, send_from_directory, render_template, flash, redirect, url_for
 from motion_detection import detector
 import os

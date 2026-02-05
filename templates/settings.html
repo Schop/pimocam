@@ -1,0 +1,20 @@
+{% extends "index.html" %}
+{% block content %}
+<h2>Current Settings</h2>
+<form method="post" action="/settings">
+  <table class="table table-bordered">
+    <tr><th>Setting</th><th>Value</th></tr>
+    {% for key, value in settings.items() %}
+    <tr>
+      <td>{{ key }}</td>
+      <td><input type="text" name="{{ key }}" value="{{ value }}" {% if key in readonly %}readonly{% endif %}></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
+<form method="post" action="/restart" style="margin-top:20px;">
+  <button type="submit" class="btn btn-danger">Restart PiMotion Service</button>
+</form>
+{% if message %}<div class="alert alert-info">{{ message }}</div>{% endif %}
+{% endblock %}
