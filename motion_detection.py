@@ -102,6 +102,8 @@ scheduler = BackgroundScheduler()
 
 def main():
     detector.start()
+    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=SCHEDULER_INTERVAL_MINUTES)
+    scheduler.start()
     try:
         while True:
             time.sleep(1)
