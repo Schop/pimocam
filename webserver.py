@@ -28,9 +28,23 @@ def index():
     images.sort(key=lambda x: x['mtime'], reverse=True)  # Newest first
     return render_template('index.html', images=images)
 
-@app.route('/view/<filename>')
-def view_image(filename):
-    return render_template('view.html', filename=filename)
+@app.route('/timelapse')
+def timelapse():
+    save_dir = detector.timelapse_dir
+    images = []
+    for f in os.listdir(save_dir):
+        if f.endswith('.jpg'):
+            path = os.path.join(save_dir, f)
+            size = os.path.getsize(path)
+            mtime = os.path.getmtime(path)
+            mtime_dt = datetime.fromtimestamp(mtime)
+            images.append({'name': f, 'size': size, 'mtime': mtime_dt})
+    images.sort(key=lambda x: x['mtime'], reverse=True)
+    return render_template('timelapse.html', images=images)
+
+@app.route('/timelapse/<filename>')
+def view_timelapse_image(filename):
+    return render_template('view_timelapse.html', filename=filename)
 
 @app.route('/start')
 def start():
