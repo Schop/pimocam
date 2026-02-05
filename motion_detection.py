@@ -4,6 +4,7 @@ from picamera2 import Picamera2
 import time
 import os
 import threading
+import subprocess
 from apscheduler.schedulers.background import BackgroundScheduler
 from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_HOURS, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS
 
