@@ -1,9 +1,10 @@
-from flask import Flask, jsonify, send_from_directory, render_template
+from flask import Flask, jsonify, send_from_directory, render_template, flash, redirect, url_for
 from motion_detection import detector
 import os
 import logging
 
 app = Flask(__name__, template_folder='templates')
+app.secret_key = 'your_secret_key'  # Needed for flashing messages
 
 # Disable Flask request logging to reduce spam
 log = logging.getLogger('werkzeug')
@@ -30,8 +31,10 @@ def stop():
 def capture():
     filename = detector.capture_image()
     if filename:
-        return jsonify({"message": "Image captured", "filename": filename})
-    return "Camera not initialized."
+        flash("Image captured successfully!")
+    else:
+        flash("Failed to capture image.")
+    return redirect(url_for('index'))
 
 @app.route('/images')
 def list_images():
