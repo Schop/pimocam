@@ -1,7 +1,7 @@
 import os
 
 # Save directory for images
-SAVE_DIR = os.getenv('SAVE_DIR', '/home/schop/Pictures')
+SAVE_DIR = os.getenv('SAVE_DIR', os.path.join(os.path.dirname(__file__), 'pictures'))
 
 # Camera resolutions
 MAIN_RES = (2304, 1296)
