@@ -1,6 +1,14 @@
 from flask import Flask, jsonify, send_from_directory
 from motion_detection import detector
 import os
+import logging
+
+app = Flask(__name__)
+
+# Disable Flask request logging to reduce spam
+log = logging.getLogger('werkzeug')
+log.disabled = True
+app.logger.disabled = True
 
 app = Flask(__name__)
 
