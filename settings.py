@@ -21,7 +21,7 @@ MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 SCHEDULER_INTERVAL_MINUTES = 30  # Minutes between scheduled captures (30 minutes)
 
 # Disk cleanup settings
-MIN_FREE_GB = 1.0  # Minimum free disk space in GB before deleting old files
+MIN_FREE_GB = 10.0  # Minimum free disk space in GB before deleting old files
 
 # Webserver settings
 WEBSERVER_HOST = '0.0.0.0'
