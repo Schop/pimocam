@@ -2,7 +2,7 @@ from flask import Flask, jsonify, send_from_directory, render_template, flash, r
 from motion_detection import detector
 import os
 import logging
-import datetime
+from datetime import datetime
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'  # Needed for flashing messages

@@ -20,4 +20,4 @@ SCHEDULER_INTERVAL_HOURS = 1  # Hours between scheduled captures
 # Webserver settings
 WEBSERVER_HOST = '0.0.0.0'
 WEBSERVER_PORT = 5000
-WEBSERVER_DEBUG = True
+WEBSERVER_DEBUG = False
