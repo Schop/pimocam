@@ -2,6 +2,7 @@ from flask import Flask, jsonify, send_from_directory, render_template, flash, r
 from motion_detection import detector
 import os
 import logging
+import datetime
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'  # Needed for flashing messages
@@ -22,7 +23,8 @@ def index():
             path = os.path.join(save_dir, f)
             size = os.path.getsize(path)
             mtime = os.path.getmtime(path)
-            images.append({'name': f, 'size': size, 'mtime': mtime})
+            mtime_dt = datetime.fromtimestamp(mtime)
+            images.append({'name': f, 'size': size, 'mtime': mtime_dt})
     images.sort(key=lambda x: x['mtime'], reverse=True)  # Newest first
     return render_template('index.html', images=images)
 
