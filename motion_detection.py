@@ -97,7 +97,7 @@ class MotionDetector:
                 filename = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
                 cv2.imwrite(filename, self.picam2.capture_array("main"))
                 print(f"Motion detected! Image saved as {filename}")
-                time.sleep(5)
+                time.sleep(MOTION_COOLDOWN_SECONDS)
             self.frame1 = frame2
             time.sleep(0.1)
 
