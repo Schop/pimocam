@@ -46,6 +46,10 @@ def timelapse():
 def view_timelapse_image(filename):
     return render_template('view_timelapse.html', filename=filename)
 
+@app.route('/timelapse_image/<filename>')
+def get_timelapse_image(filename):
+    return send_from_directory(detector.timelapse_dir, filename)
+
 @app.route('/start')
 def start():
     try:
