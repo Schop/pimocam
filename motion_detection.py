@@ -5,7 +5,7 @@ import time
 import os
 import threading
 from apscheduler.schedulers.background import BackgroundScheduler
-from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_HOURS, MOTION_COOLDOWN_SECONDS
+from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_HOURS, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS
 
 class MotionDetector:
     def __init__(self):
@@ -13,6 +13,8 @@ class MotionDetector:
         self.running = False
         self.save_dir = SAVE_DIR
         os.makedirs(self.save_dir, exist_ok=True)
+        self.timelapse_dir = TIME_LAPSE_DIR
+        os.makedirs(self.timelapse_dir, exist_ok=True)
         self.frame1 = None
         self.thread = None
         self.last_capture = 0
@@ -78,12 +80,19 @@ class MotionDetector:
         print(f"Image captured: {filename}")
         return filename
 
+    def capture_timelapse(self):
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
+        subprocess.run(['rpicam-still', '-o', filename, '--width', str(MAIN_RES[0]), '--height', str(MAIN_RES[1])])
+        print(f"Timelapse captured: {filename}")
+        return filename
+
 # Global instances
 detector = MotionDetector()
 scheduler = BackgroundScheduler()
 
 # Scheduled capture
-scheduler.add_job(func=lambda: detector.capture_image(), trigger="interval", hours=SCHEDULER_INTERVAL_HOURS)
+scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", hours=SCHEDULER_INTERVAL_HOURS)
 scheduler.start()
 
 def main():

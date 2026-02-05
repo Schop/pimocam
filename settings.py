@@ -3,6 +3,9 @@ import os
 # Save directory for images
 SAVE_DIR = os.getenv('SAVE_DIR', os.path.join(os.path.dirname(__file__), 'pictures'))
 
+# Timelapse directory
+TIME_LAPSE_DIR = os.path.join(os.path.dirname(__file__), 'timelapse')
+
 # Camera resolutions
 MAIN_RES = (2304, 1296)
 LORES_RES = (640, 480)
@@ -15,7 +18,7 @@ DILATE_ITERATIONS = 2  # Dilate iterations
 MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 
 # Scheduler settings
-SCHEDULER_INTERVAL_HOURS = 1  # Hours between scheduled captures
+SCHEDULER_INTERVAL_HOURS = 0.5  # Hours between scheduled captures
 
 # Webserver settings
 WEBSERVER_HOST = '0.0.0.0'
