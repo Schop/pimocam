@@ -18,7 +18,7 @@ DILATE_ITERATIONS = 2  # Dilate iterations
 MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 
 # Scheduler settings
-SCHEDULER_INTERVAL_HOURS = 0.5  # Hours between scheduled captures
+SCHEDULER_INTERVAL_HOURS = 1/60  # Hours between scheduled captures (1 minute)
 
 # Webserver settings
 WEBSERVER_HOST = '0.0.0.0'
