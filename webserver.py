@@ -19,13 +19,21 @@ def index():
 
 @app.route('/start')
 def start():
-    detector.start()
-    return "Motion detection started."
+    try:
+        detector.start()
+        flash("Motion detection started.")
+    except Exception as e:
+        flash(f"Failed to start motion detection: {str(e)}")
+    return redirect(url_for('index'))
 
 @app.route('/stop')
 def stop():
-    detector.stop()
-    return "Motion detection stopped."
+    try:
+        detector.stop()
+        flash("Motion detection stopped.")
+    except Exception as e:
+        flash(f"Failed to stop motion detection: {str(e)}")
+    return redirect(url_for('index'))
 
 @app.route('/capture')
 def capture():

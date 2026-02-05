@@ -67,11 +67,10 @@ class MotionDetector:
             time.sleep(0.1)
 
     def capture_image(self):
-        if not self.picam2:
-            return None
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filename = os.path.join(self.save_dir, f"capture_{timestamp}.jpg")
-        cv2.imwrite(filename, self.picam2.capture_array("main"))
+        # Use rpicam-still for capture to avoid interfering with motion detection
+        subprocess.run(['rpicam-still', '-o', filename, '--width', str(MAIN_RES[0]), '--height', str(MAIN_RES[1])])
         print(f"Image captured: {filename}")
         return filename
 
