@@ -2,6 +2,7 @@ from flask import Flask, jsonify, send_from_directory, render_template, flash, r
 from motion_detection import detector
 import os
 import logging
+import shutil
 from datetime import datetime
 
 app = Flask(__name__, template_folder='templates')
@@ -26,7 +27,8 @@ def index():
             mtime_dt = datetime.fromtimestamp(mtime)
             images.append({'name': f, 'size': size, 'mtime': mtime_dt})
     images.sort(key=lambda x: x['mtime'], reverse=True)  # Newest first
-    return render_template('index.html', images=images)
+    free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
+    return render_template('index.html', images=images, free_space=free_space)
 
 @app.route('/timelapse')
 def timelapse():
@@ -40,7 +42,8 @@ def timelapse():
             mtime_dt = datetime.fromtimestamp(mtime)
             images.append({'name': f, 'size': size, 'mtime': mtime_dt})
     images.sort(key=lambda x: x['mtime'], reverse=True)
-    return render_template('timelapse.html', images=images)
+    free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
+    return render_template('timelapse.html', images=images, free_space=free_space)
 
 @app.route('/timelapse/<filename>')
 def view_timelapse_image(filename):

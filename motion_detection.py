@@ -4,8 +4,24 @@ from picamera2 import Picamera2
 import time
 import os
 import threading
+import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
 from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_MINUTES, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS
+
+def cleanup_old_files(directory, min_free_gb=1.0):
+    """Delete oldest files in directory if free disk space is below min_free_gb"""
+    free_gb = shutil.disk_usage('/').free / (1024**3)
+    if free_gb < min_free_gb:
+        files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.jpg')]
+        files.sort(key=os.path.getmtime)  # Oldest first
+        while files and free_gb < min_free_gb:
+            oldest = files.pop(0)
+            try:
+                os.remove(oldest)
+                print(f"Deleted old file: {oldest}")
+                free_gb = shutil.disk_usage('/').free / (1024**3)
+            except OSError as e:
+                print(f"Error deleting {oldest}: {e}")
 
 class MotionDetector:
     def __init__(self):
@@ -75,10 +91,14 @@ class MotionDetector:
     def capture_image(self):
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filename = os.path.join(self.save_dir, f"capture_{timestamp}.jpg")
-        # Use rpicam-still for capture to avoid interfering with motion detection
-        subprocess.run(['rpicam-still', '-o', filename, '--width', str(MAIN_RES[0]), '--height', str(MAIN_RES[1])])
-        print(f"Image captured: {filename}")
-        return filename
+        if self.picam2:
+            self.picam2.capture_file(filename)
+            print(f"Image captured: {filename}")
+            cleanup_old_files(self.save_dir)
+            return filename
+        else:
+            print("Camera not initialized")
+            return None
 
     def capture_timelapse(self):
         print("Timelapse job triggered")
@@ -88,6 +108,7 @@ class MotionDetector:
             try:
                 self.picam2.capture_file(filename)
                 print(f"Timelapse captured: {filename}")
+                cleanup_old_files(self.timelapse_dir)
                 return filename
             except Exception as e:
                 print(f"Error capturing timelapse: {e}")
