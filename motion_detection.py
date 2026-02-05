@@ -114,11 +114,21 @@ class MotionDetector:
             return None
 
     def capture_timelapse(self):
+        from settings import TIMELAPSE_BRIGHTNESS_THRESHOLD
         print("Timelapse job triggered")
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
+        # Grab a low-res frame and check brightness
         if self.picam2:
             try:
+                preview_yuv = self.picam2.capture_array("lores")
+                preview_color = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2RGB_I420)
+                preview_gray = cv2.cvtColor(preview_color, cv2.COLOR_BGR2GRAY)
+                mean_brightness = np.mean(preview_gray)
+                print(f"Timelapse preview brightness: {mean_brightness:.1f}")
+                if mean_brightness < TIMELAPSE_BRIGHTNESS_THRESHOLD:
+                    print(f"Too dark for timelapse (threshold: {TIMELAPSE_BRIGHTNESS_THRESHOLD}), skipping.")
+                    return None
+                timestamp = time.strftime("%Y%m%d-%H%M%S")
+                filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
                 self.picam2.capture_file(filename)
                 print(f"Timelapse captured: {filename}")
                 cleanup_old_files(self.timelapse_dir)

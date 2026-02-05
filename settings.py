@@ -18,6 +18,9 @@ DILATE_ITERATIONS = 2  # Dilate iterations
 MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 
 # Scheduler settings
+
+# Timelapse brightness threshold (mean grayscale value, 0-255)
+TIMELAPSE_BRIGHTNESS_THRESHOLD = 40  # Adjust as needed
 SCHEDULER_INTERVAL_MINUTES = 30  # Minutes between scheduled captures (30 minutes)
 
 # Disk cleanup settings
