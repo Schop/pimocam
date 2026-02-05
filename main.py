@@ -1,12 +1,12 @@
 import time
 from motion_detection import detector, scheduler
 from webserver import app
-from settings import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_DEBUG
+from settings import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_DEBUG, SCHEDULER_INTERVAL_MINUTES
 
 if __name__ == '__main__':
     # Start motion detection
     detector.start()
-    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=0.1)
+    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=SCHEDULER_INTERVAL_MINUTES)
     scheduler.start()
     try:
         # Run webserver
