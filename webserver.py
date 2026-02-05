@@ -1,7 +1,21 @@
-from flask import request
+from flask import Flask, jsonify, send_from_directory, render_template, flash, redirect, url_for, request
 import importlib
 import sys
 import re
+from motion_detection import detector
+import os
+import logging
+import shutil
+from datetime import datetime
+
+app = Flask(__name__, template_folder='templates')
+app.secret_key = 'your_secret_key'  # Needed for flashing messages
+
+# Disable Flask request logging to reduce spam
+log = logging.getLogger('werkzeug')
+log.disabled = True
+app.logger.disabled = True
+
 # Helper to load settings as dict
 def load_settings():
     import settings
