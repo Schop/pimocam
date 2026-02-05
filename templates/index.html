@@ -34,7 +34,7 @@
                         <h5 class="card-title">{{ img.name }}</h5>
                         <p class="card-text">
                             Size: {{ "%.2f"|format(img.size / 1024) }} KB<br>
-                            Date: {{ img.mtime | strftime('%Y-%m-%d %H:%M:%S') }}
+                            Date: {{ img.mtime.strftime('%Y-%m-%d %H:%M:%S') }}
                         </p>
                     </div>
                 </div>
