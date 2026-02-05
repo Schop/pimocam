@@ -57,13 +57,12 @@ class MotionDetector:
             # Find contours
             contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             motion_detected = any(cv2.contourArea(contour) > CONTOUR_THRESHOLD for contour in contours)
-            if motion_detected and (time.time() - self.last_capture) > MOTION_COOLDOWN_SECONDS:
+            if motion_detected:
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
                 cv2.imwrite(filename, self.picam2.capture_array("main"))
                 print(f"Motion detected! Image saved as {filename}")
-                self.last_capture = time.time()
-                time.sleep(5)  # Short delay to avoid immediate re-trigger
+                time.sleep(5)
             self.frame1 = frame2
             time.sleep(0.1)
 
