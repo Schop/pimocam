@@ -7,6 +7,8 @@ import os
 import logging
 import shutil
 from datetime import datetime
+import subprocess
+import psutil
 from db_settings import get_all_settings, get_settings_by_category, get_setting, set_setting, reset_to_defaults
 
 app = Flask(__name__, template_folder='templates')
@@ -234,6 +236,62 @@ def delete_timelapse(filename):
     except Exception as e:
         flash(f"Error deleting {filename}: {str(e)}")
     return redirect(url_for('timelapse'))
+
+@app.route('/stats')
+def stats():
+    # Get process information
+    try:
+        current_process = psutil.Process()
+        start_time = datetime.fromtimestamp(current_process.create_time())
+        uptime = datetime.now() - start_time
+        uptime_str = str(uptime).split('.')[0]  # Remove microseconds
+    except:
+        uptime_str = "Unknown"
+    
+    # Count files in directories
+    motion_count = len([f for f in os.listdir(detector.save_dir) if f.endswith('.jpg')])
+    timelapse_count = len([f for f in os.listdir(detector.timelapse_dir) if f.endswith('.jpg')])
+    
+    # Get disk space
+    free_space_gb = shutil.disk_usage('/').free / (1024**3)
+    total_space_gb = shutil.disk_usage('/').total / (1024**3)
+    used_space_gb = total_space_gb - free_space_gb
+    
+    # Calculate directory sizes
+    try:
+        motion_size = sum(os.path.getsize(os.path.join(detector.save_dir, f)) 
+                         for f in os.listdir(detector.save_dir) if f.endswith('.jpg')) / (1024**2)
+        timelapse_size = sum(os.path.getsize(os.path.join(detector.timelapse_dir, f)) 
+                            for f in os.listdir(detector.timelapse_dir) if f.endswith('.jpg')) / (1024**2)
+    except:
+        motion_size = 0
+        timelapse_size = 0
+    
+    # Get recent logs (last 50 lines)
+    try:
+        result = subprocess.run(['journalctl', '-u', 'pimocam', '-n', '50', '--no-pager'], 
+                               capture_output=True, text=True, timeout=5)
+        logs = result.stdout.split('\n')
+    except:
+        logs = ["Could not retrieve logs"]
+    
+    # Get current settings
+    settings = get_all_settings()
+    
+    stats_data = {
+        'uptime': uptime_str,
+        'motion_count': motion_count,
+        'timelapse_count': timelapse_count,
+        'motion_size_mb': motion_size,
+        'timelapse_size_mb': timelapse_size,
+        'free_space_gb': free_space_gb,
+        'used_space_gb': used_space_gb,
+        'total_space_gb': total_space_gb,
+        'logs': logs,
+        'settings': settings
+    }
+    
+    return render_template('stats.html', stats=stats_data)
 
 if __name__ == '__main__':
     from motion_detection import scheduler

@@ -17,6 +17,8 @@
         <h1 class="mb-4">Timelapse Images</h1>
         <p class="text-muted">Free disk space: {{ "%.2f"|format(free_space) }} GB | Showing {{ images|length }} most recent images</p>
         <a href="/" class="btn btn-secondary mb-4">Back to Motion Images</a>
+        <a href="/settings" class="btn btn-secondary mb-4 ms-2">Settings</a>
+        <a href="/stats" class="btn btn-primary mb-4 ms-2">Stats</a>
         <form method="post" action="/capture_timelapse" style="display: inline;">
             <button type="submit" class="btn btn-success mb-4 ms-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
