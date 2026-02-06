@@ -98,6 +98,7 @@ def index():
             mtime_dt = datetime.fromtimestamp(mtime)
             images.append({'name': f, 'size': size, 'mtime': mtime_dt})
     images.sort(key=lambda x: x['mtime'], reverse=True)  # Newest first
+    images = images[:25]  # Limit to 25 most recent images
     free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
     return render_template('index.html', images=images, free_space=free_space)
 
@@ -113,6 +114,7 @@ def timelapse():
             mtime_dt = datetime.fromtimestamp(mtime)
             images.append({'name': f, 'size': size, 'mtime': mtime_dt})
     images.sort(key=lambda x: x['mtime'], reverse=True)
+    images = images[:25]  # Limit to 25 most recent images
     free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
     return render_template('timelapse.html', images=images, free_space=free_space)
 
@@ -166,6 +168,32 @@ def list_images():
 @app.route('/images/<filename>')
 def get_image(filename):
     return send_from_directory(detector.save_dir, filename)
+
+@app.route('/delete/<filename>', methods=['POST'])
+def delete_image(filename):
+    try:
+        filepath = os.path.join(detector.save_dir, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            flash(f"Deleted {filename}")
+        else:
+            flash(f"File {filename} not found")
+    except Exception as e:
+        flash(f"Error deleting {filename}: {str(e)}")
+    return redirect(url_for('index'))
+
+@app.route('/delete_timelapse/<filename>', methods=['POST'])
+def delete_timelapse(filename):
+    try:
+        filepath = os.path.join(detector.timelapse_dir, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            flash(f"Deleted {filename}")
+        else:
+            flash(f"File {filename} not found")
+    except Exception as e:
+        flash(f"Error deleting {filename}: {str(e)}")
+    return redirect(url_for('timelapse'))
 
 if __name__ == '__main__':
     from motion_detection import scheduler
