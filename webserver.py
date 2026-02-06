@@ -118,7 +118,12 @@ def timelapse():
 
 @app.route('/timelapse/<filename>')
 def view_timelapse_image(filename):
-    return render_template('view_timelapse.html', filename=filename)
+    # Get all timelapse images sorted by name (newest first)
+    images = sorted([f for f in os.listdir(detector.timelapse_dir) if f.endswith('.jpg')], reverse=True)
+    current_index = images.index(filename) if filename in images else -1
+    prev_image = images[current_index - 1] if current_index > 0 else None
+    next_image = images[current_index + 1] if current_index < len(images) - 1 else None
+    return render_template('view_timelapse.html', filename=filename, prev_image=prev_image, next_image=next_image)
 
 @app.route('/timelapse_image/<filename>')
 def get_timelapse_image(filename):
@@ -126,7 +131,12 @@ def get_timelapse_image(filename):
 
 @app.route('/view/<filename>')
 def view_image(filename):
-    return render_template('view.html', filename=filename)
+    # Get all motion images sorted by name (newest first)
+    images = sorted([f for f in os.listdir(detector.save_dir) if f.endswith('.jpg')], reverse=True)
+    current_index = images.index(filename) if filename in images else -1
+    prev_image = images[current_index - 1] if current_index > 0 else None
+    next_image = images[current_index + 1] if current_index < len(images) - 1 else None
+    return render_template('view.html', filename=filename, prev_image=prev_image, next_image=next_image)
 
 @app.route('/start')
 def start():
