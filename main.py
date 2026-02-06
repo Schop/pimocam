@@ -17,8 +17,8 @@ if __name__ == '__main__':
     try:
         # Run webserver
         port = get_setting('WEBSERVER_PORT', 5000)
-        debug = get_setting('WEBSERVER_DEBUG', True)
-        app.run(host=WEBSERVER_HOST, port=port, debug=debug)
+        # Disable debug mode to prevent Flask reloader from conflicting with camera
+        app.run(host=WEBSERVER_HOST, port=port, debug=False)
     except KeyboardInterrupt:
         print("Shutting down...")
     finally:

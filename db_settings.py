@@ -79,9 +79,9 @@ SETTINGS_METADATA = {
         'category': 'Web Server'
     },
     'WEBSERVER_DEBUG': {
-        'value': True,
+        'value': False,
         'type': 'bool',
-        'description': 'Enable debug mode for the web server (shows detailed errors).',
+        'description': 'Enable debug mode for the web server (NOT recommended - causes camera conflicts).',
         'category': 'Web Server'
     }
 }
