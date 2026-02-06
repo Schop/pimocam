@@ -11,9 +11,9 @@ MAIN_RES = (2304, 1296)
 LORES_RES = (640, 480)
 
 # Motion detection settings
-CONTOUR_THRESHOLD = 1000  # Minimum contour area for motion detection
-BLUR_KERNEL = (31, 31)  # Gaussian blur kernel size
-THRESH_VALUE = 50  # Threshold value for binary threshold
+CONTOUR_THRESHOLD = 300  # Minimum contour area for motion detection
+BLUR_KERNEL = (15, 15)  # Gaussian blur kernel size
+THRESH_VALUE = 35  # Threshold value for binary threshold
 DILATE_ITERATIONS = 2  # Dilate iterations
 MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 
