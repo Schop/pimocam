@@ -118,6 +118,18 @@ def timelapse():
     free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
     return render_template('timelapse.html', images=images, free_space=free_space)
 
+@app.route('/capture_timelapse', methods=['POST'])
+def capture_timelapse_now():
+    try:
+        result = detector.capture_timelapse()
+        if result:
+            flash(f"Timelapse captured successfully!")
+        else:
+            flash(f"Timelapse skipped (too dark or camera not ready)")
+    except Exception as e:
+        flash(f"Error capturing timelapse: {str(e)}")
+    return redirect(url_for('timelapse'))
+
 @app.route('/timelapse/<filename>')
 def view_timelapse_image(filename):
     # Get all timelapse images sorted by name (newest first)

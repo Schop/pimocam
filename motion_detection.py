@@ -134,9 +134,9 @@ class MotionDetector:
                 preview_color = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2RGB_I420)
                 preview_gray = cv2.cvtColor(preview_color, cv2.COLOR_BGR2GRAY)
                 mean_brightness = np.mean(preview_gray)
-                print(f"Timelapse preview brightness: {mean_brightness:.1f}")
+                print(f"Timelapse brightness: {mean_brightness:.1f} (threshold: {brightness_threshold})")
                 if mean_brightness < brightness_threshold:
-                    print(f"Too dark for timelapse (threshold: {brightness_threshold}), skipping.")
+                    print(f"Too dark for timelapse, skipping.")
                     return None
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
