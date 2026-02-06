@@ -104,6 +104,8 @@ def index():
 
 @app.route('/timelapse')
 def timelapse():
+    import cv2
+    import numpy as np
     save_dir = detector.timelapse_dir
     images = []
     for f in os.listdir(save_dir):
@@ -112,7 +114,16 @@ def timelapse():
             size = os.path.getsize(path)
             mtime = os.path.getmtime(path)
             mtime_dt = datetime.fromtimestamp(mtime)
-            images.append({'name': f, 'size': size, 'mtime': mtime_dt})
+            
+            # Calculate brightness
+            try:
+                img = cv2.imread(path)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                brightness = np.mean(gray)
+            except:
+                brightness = None
+            
+            images.append({'name': f, 'size': size, 'mtime': mtime_dt, 'brightness': brightness})
     images.sort(key=lambda x: x['mtime'], reverse=True)
     images = images[:25]  # Limit to 25 most recent images
     free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB

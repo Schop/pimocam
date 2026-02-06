@@ -44,6 +44,9 @@
                     <div class="card-body">
                         <h3 class="card-title text-center">{{ img.mtime.strftime('%H:%M:%S') }}</h3>
                         <p class="card-text">
+                            {% if img.brightness %}
+                            <strong>Brightness: {{ "%.1f"|format(img.brightness) }}</strong><br>
+                            {% endif %}
                             Size: {{ "%.2f"|format(img.size / 1024) }} KB<br>
                             Date: {{ img.mtime.strftime('%Y-%m-%d %H:%M:%S') }}<br>
                             Image: {{ img.name }}
