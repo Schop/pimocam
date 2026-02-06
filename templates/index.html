@@ -34,7 +34,7 @@
                         <img src="/images/{{ img.name }}" class="card-img-top" style="height: 150px; object-fit: cover;">
                     </a>
                     <div class="card-body">
-                        <h5 class="card-title">{{ img.mtime.strftime('%H:%M:%S') }}</h5>
+                        <h3 class="card-title">{{ img.mtime.strftime('%H:%M:%S') }}</h3>
                         <p class="card-text">
                             File: {{ img.name }}<br>
                             Size: {{ "%.2f"|format(img.size / 1024) }} KB<br>
