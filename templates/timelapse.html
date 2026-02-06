@@ -25,10 +25,11 @@
                         <img src="/timelapse_image/{{ img.name }}" class="card-img-top" style="height: 200px; object-fit: cover;">
                     </a>
                     <div class="card-body">
-                        <h5 class="card-title">{{ img.name }}</h5>
+                        <h3 class="card-title text-center">{{ img.mtime.strftime('%H:%M:%S') }}</h3>
                         <p class="card-text">
                             Size: {{ "%.2f"|format(img.size / 1024) }} KB<br>
-                            Date: {{ img.mtime.strftime('%Y-%m-%d %H:%M:%S') }}
+                            Date: {{ img.mtime.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+                            Image: {{ img.name }}
                         </p>
                         <form method="post" action="/delete_timelapse/{{ img.name }}" style="display: inline;"
                               onsubmit="return confirm('Are you sure you want to delete {{ img.name }}?');">
