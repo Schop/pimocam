@@ -63,10 +63,10 @@ class MotionDetector:
             time.sleep(2)
             # Capture first frame
             frame1_yuv = self.picam2.capture_array("lores")
-            blur_size = get_setting('BLUR_KERNEL', 15)
-            self.frame1 = cv2.GaussianBlur(self.frame1, (blur_size, blur_size)GB_I420)
+            frame1_color = cv2.cvtColor(frame1_yuv, cv2.COLOR_YUV2RGB_I420)
             self.frame1 = cv2.cvtColor(frame1_color, cv2.COLOR_BGR2GRAY)
-            self.frame1 = cv2.GaussianBlur(self.frame1, BLUR_KERNEL, 0)
+            blur_size = get_setting('BLUR_KERNEL', 15)
+            self.frame1 = cv2.GaussianBlur(self.frame1, (blur_size, blur_size), 0)
             print("Motion detection started.")
             self.thread = threading.Thread(target=self._detect_loop)
             self.thread.start()
