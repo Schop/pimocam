@@ -122,10 +122,27 @@ def timelapse():
 def capture_timelapse_now():
     try:
         result = detector.capture_timelapse()
-        if result:
-            flash(f"Timelapse captured successfully!")
+        if isinstance(result, dict):
+            if result['success']:
+                brightness = result.get('brightness', 'N/A')
+                flash(f"Timelapse captured successfully! Brightness: {brightness:.1f}")
+            else:
+                reason = result.get('reason')
+                if reason == 'too_dark':
+                    brightness = result.get('brightness', 'N/A')
+                    threshold = result.get('threshold', 'N/A')
+                    flash(f"Too dark for timelapse. Brightness: {brightness:.1f}, Threshold: {threshold}")
+                elif reason == 'camera_not_ready':
+                    flash("Camera not ready. Please wait a moment and try again.")
+                else:
+                    error = result.get('error', 'Unknown error')
+                    flash(f"Error: {error}")
         else:
-            flash(f"Timelapse skipped (too dark or camera not ready)")
+            # Backwards compatibility with old return format
+            if result:
+                flash(f"Timelapse captured successfully!")
+            else:
+                flash(f"Timelapse skipped")
     except Exception as e:
         flash(f"Error capturing timelapse: {str(e)}")
     return redirect(url_for('timelapse'))

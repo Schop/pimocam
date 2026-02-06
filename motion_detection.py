@@ -137,19 +137,19 @@ class MotionDetector:
                 print(f"Timelapse brightness: {mean_brightness:.1f} (threshold: {brightness_threshold})")
                 if mean_brightness < brightness_threshold:
                     print(f"Too dark for timelapse, skipping.")
-                    return None
+                    return {'success': False, 'reason': 'too_dark', 'brightness': mean_brightness, 'threshold': brightness_threshold}
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
                 self.picam2.capture_file(filename)
                 print(f"Timelapse captured: {filename}")
                 cleanup_old_files(self.timelapse_dir)
-                return filename
+                return {'success': True, 'filename': filename, 'brightness': mean_brightness}
             except Exception as e:
                 print(f"Error capturing timelapse: {e}")
-                return None
+                return {'success': False, 'reason': 'error', 'error': str(e)}
         else:
             print("Camera not initialized for timelapse")
-            return None
+            return {'success': False, 'reason': 'camera_not_ready'}
 
 # Global instances
 detector = MotionDetector()
