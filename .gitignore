@@ -24,3 +24,8 @@ coverage.xml
 # Optional: ignore saved images if you don't want them in repo
 # Pictures/
 # motion_*.jpg
+
+# SQLite temporary files (don't commit these)
+*.db-journal
+*.db-wal
+*.db-shm

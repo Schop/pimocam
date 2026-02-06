@@ -7,10 +7,13 @@ import threading
 import shutil
 import subprocess
 from apscheduler.schedulers.background import BackgroundScheduler
-from settings import SAVE_DIR, MAIN_RES, LORES_RES, CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS, SCHEDULER_INTERVAL_MINUTES, TIME_LAPSE_DIR, MOTION_COOLDOWN_SECONDS, MIN_FREE_GB
+from settings import SAVE_DIR, MAIN_RES, LORES_RES, TIME_LAPSE_DIR
+from db_settings import get_setting
 
-def cleanup_old_files(directory, min_free_gb=MIN_FREE_GB):
+def cleanup_old_files(directory, min_free_gb=None):
     """Delete oldest files in directory if free disk space is below min_free_gb"""
+    if min_free_gb is None:
+        min_free_gb = get_setting('MIN_FREE_GB', 10.0)
     free_gb = shutil.disk_usage('/').free / (1024**3)
     if free_gb < min_free_gb:
         files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.jpg')]
@@ -60,7 +63,8 @@ class MotionDetector:
             time.sleep(2)
             # Capture first frame
             frame1_yuv = self.picam2.capture_array("lores")
-            frame1_color = cv2.cvtColor(frame1_yuv, cv2.COLOR_YUV2RGB_I420)
+            blur_size = get_setting('BLUR_KERNEL', 15)
+            self.frame1 = cv2.GaussianBlur(self.frame1, (blur_size, blur_size)GB_I420)
             self.frame1 = cv2.cvtColor(frame1_color, cv2.COLOR_BGR2GRAY)
             self.frame1 = cv2.GaussianBlur(self.frame1, BLUR_KERNEL, 0)
             print("Motion detection started.")
@@ -77,24 +81,31 @@ class MotionDetector:
         if self.thread:
             self.thread.join()
         print("Motion detection stopped.")
-
-    def _detect_loop(self):
-        while self.running:
+Get current settings
+            blur_size = get_setting('BLUR_KERNEL', 15)
+            thresh_value = get_setting('THRESH_VALUE', 35)
+            dilate_iterations = get_setting('DILATE_ITERATIONS', 2)
+            contour_threshold = get_setting('CONTOUR_THRESHOLD', 300)
+            cooldown = get_setting('MOTION_COOLDOWN_SECONDS', 5)
+            
             # Capture current frame
             frame2_yuv = self.picam2.capture_array("lores")
             frame2_color = cv2.cvtColor(frame2_yuv, cv2.COLOR_YUV2RGB_I420)
             frame2 = cv2.cvtColor(frame2_color, cv2.COLOR_BGR2GRAY)
-            frame2 = cv2.GaussianBlur(frame2, BLUR_KERNEL, 0)
+            frame2 = cv2.GaussianBlur(frame2, (blur_size, blur_size), 0)
             # Compute the absolute difference
             frame_diff = cv2.absdiff(self.frame1, frame2)
-            thresh = cv2.threshold(frame_diff, THRESH_VALUE, 255, cv2.THRESH_BINARY)[1]
-            thresh = cv2.dilate(thresh, None, iterations=DILATE_ITERATIONS)
+            thresh = cv2.threshold(frame_diff, thresh_value, 255, cv2.THRESH_BINARY)[1]
+            thresh = cv2.dilate(thresh, None, iterations=dilate_iterations)
             # Find contours
             contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            motion_detected = any(cv2.contourArea(contour) > CONTOUR_THRESHOLD for contour in contours)
+            motion_detected = any(cv2.contourArea(contour) > contour_threshold for contour in contours)
             if motion_detected:
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
+                cv2.imwrite(filename, self.picam2.capture_array("main"))
+                print(f"Motion detected! Image saved as {filename}")
+                time.sleep(cooldowndir, f"motion_{timestamp}.jpg")
                 cv2.imwrite(filename, self.picam2.capture_array("main"))
                 print(f"Motion detected! Image saved as {filename}")
                 time.sleep(MOTION_COOLDOWN_SECONDS)
@@ -106,18 +117,18 @@ class MotionDetector:
         filename = os.path.join(self.save_dir, f"capture_{timestamp}.jpg")
         if self.picam2:
             self.picam2.capture_file(filename)
-            print(f"Image captured: {filename}")
-            cleanup_old_files(self.save_dir)
-            return filename
-        else:
-            print("Camera not initialized")
-            return None
-
-    def capture_timelapse(self):
-        from settings import TIMELAPSE_BRIGHTNESS_THRESHOLD
+        brightness_threshold = get_setting('TIMELAPSE_BRIGHTNESS_THRESHOLD', 40)
         print("Timelapse job triggered")
         # Grab a low-res frame and check brightness
         if self.picam2:
+            try:
+                preview_yuv = self.picam2.capture_array("lores")
+                preview_color = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2RGB_I420)
+                preview_gray = cv2.cvtColor(preview_color, cv2.COLOR_BGR2GRAY)
+                mean_brightness = np.mean(preview_gray)
+                print(f"Timelapse preview brightness: {mean_brightness:.1f}")
+                if mean_brightness < brightness_threshold:
+                    print(f"Too dark for timelapse (threshold: {brightness_threshold
             try:
                 preview_yuv = self.picam2.capture_array("lores")
                 preview_color = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2RGB_I420)
@@ -138,7 +149,8 @@ class MotionDetector:
                 return None
         else:
             print("Camera not initialized for timelapse")
-            return None
+    interval_minutes = get_setting('SCHEDULER_INTERVAL_MINUTES', 30)
+    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=interval_minutes
 
 # Global instances
 detector = MotionDetector()

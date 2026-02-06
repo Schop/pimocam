@@ -5,28 +5,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - PiMotion</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .setting-row {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .setting-description {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        .setting-constraints {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        .category-header {
+            background-color: #0d6efd;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+        .range-value {
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
+    <div class="container mt-5 mb-5">
         <h1 class="mb-4">PiMotion Settings</h1>
         <a href="/" class="btn btn-secondary mb-4">Back to Home</a>
-        <h2>Current Settings</h2>
-        <form method="post" action="/settings">
-          <table class="table table-bordered">
-            <tr><th>Setting</th><th>Value</th></tr>
-            {% for key, value in settings.items() %}
-            <tr>
-              <td>{{ key }}</td>
-              <td><input type="text" name="{{ key }}" value="{{ value }}" {% if key in readonly %}readonly{% endif %}></td>
-            </tr>
+        
+        {% if message %}
+            <div class="alert alert-{{ message_type if message_type else 'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endif %}
+
+        <form method="post" action="/settings" id="settingsForm">
+            {% for category, cat_settings in settings.items() %}
+                <div class="category-header">
+                    <h3 class="mb-0">{{ category }}</h3>
+                </div>
+                
+                {% for key, meta in cat_settings.items() %}
+                    <div class="setting-row">
+                        <label for="{{ key }}" class="form-label"><strong>{{ key }}</strong></label>
+                        <div class="setting-description">{{ meta.description }}</div>
+                        
+                        {% if meta.data_type == 'bool' %}
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="{{ key }}" name="{{ key }}" 
+                                       value="true" {% if meta.value|lower in ['true', '1'] %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ key }}">
+                                    {% if meta.value|lower in ['true', '1'] %}Enabled{% else %}Disabled{% endif %}
+                                </label>
+                            </div>
+                        {% elif meta.data_type in ['int', 'float'] %}
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <input type="range" class="form-range" id="{{ key }}" name="{{ key }}" 
+                                           value="{{ meta.value }}" 
+                                           min="{{ meta.min_value }}" 
+                                           max="{{ meta.max_value }}"
+                                           {% if meta.data_type == 'float' %}step="0.1"{% else %}step="1"{% endif %}
+                                           oninput="document.getElementById('{{ key }}_value').innerText = this.value">
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="range-value" id="{{ key }}_value">{{ meta.value }}</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ meta.value }}" 
+                                           min="{{ meta.min_value }}" 
+                                           max="{{ meta.max_value }}"
+                                           {% if meta.data_type == 'float' %}step="0.1"{% else %}step="1"{% endif %}
+                                           onchange="document.getElementById('{{ key }}').value = this.value; document.getElementById('{{ key }}_value').innerText = this.value"
+                                           id="{{ key }}_input">
+                                </div>
+                            </div>
+                            <div class="setting-constraints">
+                                Range: {{ meta.min_value }} - {{ meta.max_value }}
+                            </div>
+                            <script>
+                                // Sync slider with number input
+                                document.getElementById('{{ key }}').addEventListener('input', function() {
+                                    document.getElementById('{{ key }}_input').value = this.value;
+                                });
+                            </script>
+                        {% else %}
+                            <input type="text" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ meta.value }}">
+                        {% endif %}
+                    </div>
+                {% endfor %}
             {% endfor %}
-          </table>
-          <button type="submit" class="btn btn-primary">Save Changes</button>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                <button type="submit" name="reset" value="true" class="btn btn-warning btn-lg" 
+                        onclick="return confirm('Are you sure you want to reset all settings to defaults?')">
+                    Reset to Defaults
+                </button>
+            </div>
         </form>
-        <form method="post" action="/restart" style="margin-top:20px;">
-          <button type="submit" class="btn btn-danger">Restart PiMotion Service</button>
-        </form>
-        {% if message %}<div class="alert alert-info mt-3">{{ message }}</div>{% endif %}
     </div>
-</body>
-</html>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

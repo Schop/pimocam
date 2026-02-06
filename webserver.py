@@ -7,6 +7,7 @@ import os
 import logging
 import shutil
 from datetime import datetime
+from db_settings import get_all_settings, get_settings_by_category, get_setting, set_setting, reset_to_defaults
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'  # Needed for flashing messages
@@ -16,56 +17,72 @@ log = logging.getLogger('werkzeug')
 log.disabled = True
 app.logger.disabled = True
 
-# Helper to load settings as dict
-def load_settings():
-    import settings
-    # Only show editable settings (not imported modules, etc.)
-    keys = [k for k in dir(settings) if k.isupper() and not k.startswith('__')]
-    return {k: getattr(settings, k) for k in keys}
+# API: Get all settings
+@app.route('/api/settings', methods=['GET'])
+def api_get_settings():
+    """Get all settings organized by category"""
+    try:
+        settings = get_settings_by_category()
+        return jsonify({'success': True, 'settings': settings})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# Helper to update settings.py file
-def update_settings(new_settings):
-    settings_path = os.path.join(os.path.dirname(__file__), 'settings.py')
-    with open(settings_path, 'r') as f:
-        lines = f.readlines()
-    for i, line in enumerate(lines):
-        m = re.match(r'^(\w+)\s*=\s*(.+)', line)
-        if m:
-            key = m.group(1)
-            if key in new_settings:
-                val = new_settings[key]
-                # Try to keep type (int/float/str/tuple)
-                if val.isdigit():
-                    val_str = val
-                else:
-                    try:
-                        float(val)
-                        val_str = val
-                    except:
-                        if val.startswith('(') and val.endswith(')'):
-                            val_str = val
-                        else:
-                            val_str = f'"{val}"'
-                lines[i] = f'{key} = {val_str}\n'
-    with open(settings_path, 'w') as f:
-        f.writelines(lines)
+# API: Update a setting
+@app.route('/api/settings/<key>', methods=['POST'])
+def api_update_setting(key):
+    """Update a single setting"""
+    try:
+        data = request.get_json()
+        value = data.get('value')
+        if value is None:
+            return jsonify({'success': False, 'error': 'Missing value'}), 400
+        set_setting(key, value)
+        return jsonify({'success': True, 'message': f'{key} updated successfully'})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# Settings page (GET: view, POST: update)
+# API: Reset all settings to defaults
+@app.route('/api/settings/reset', methods=['POST'])
+def api_reset_settings():
+    """Reset all settings to default values"""
+    try:
+        reset_to_defaults()
+        return jsonify({'success': True, 'message': 'All settings reset to defaults'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Settings page
 @app.route('/settings', methods=['GET', 'POST'])
 def settings_page():
     message = None
-    readonly = ['SAVE_DIR', 'TIME_LAPSE_DIR']
+    message_type = 'success'
+    
     if request.method == 'POST':
-        # Only update editable settings
-        editable = [k for k in load_settings().keys() if k not in readonly]
-        new_settings = {k: request.form[k] for k in editable if k in request.form}
-        update_settings(new_settings)
-        # Reload settings module
-        if 'settings' in sys.modules:
-            importlib.reload(sys.modules['settings'])
-        message = 'Settings updated!'
-    settings_dict = load_settings()
-    return render_template('settings.html', settings=settings_dict, readonly=readonly, message=message)
+        try:
+            # Check if this is a reset request
+            if 'reset' in request.form:
+                reset_to_defaults()
+                message = 'All settings reset to defaults!'
+            else:
+                # Update individual settings
+                for key, value in request.form.items():
+                    if key != 'csrf_token':  # Skip CSRF token if present
+                        try:
+                            set_setting(key, value)
+                        except ValueError as e:
+                            message = f'Error updating {key}: {str(e)}'
+                            message_type = 'error'
+                            break
+                else:
+                    message = 'Settings updated successfully!'
+        except Exception as e:
+            message = f'Error: {str(e)}'
+            message_type = 'error'
+    
+    settings_dict = get_settings_by_category()
+    return render_template('settings.html', settings=settings_dict, message=message, message_type=message_type)
 
 
 
@@ -142,12 +159,16 @@ def get_image(filename):
 
 if __name__ == '__main__':
     from motion_detection import scheduler
-    from settings import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_DEBUG, SCHEDULER_INTERVAL_MINUTES
+    from settings import WEBSERVER_HOST
+    from db_settings import get_setting
     print("Starting detector...")
     detector.start()
     print("Adding timelapse job...")
-    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=SCHEDULER_INTERVAL_MINUTES)
+    interval_minutes = get_setting('SCHEDULER_INTERVAL_MINUTES', 30)
+    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=interval_minutes)
     print("Starting scheduler...")
     scheduler.start()
     print("Starting webserver...")
-    app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT, debug=WEBSERVER_DEBUG)
+    port = get_setting('WEBSERVER_PORT', 5000)
+    debug = get_setting('WEBSERVER_DEBUG', True)
+    app.run(host=WEBSERVER_HOST, port=port, debug=debug)
