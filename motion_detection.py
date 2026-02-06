@@ -81,7 +81,10 @@ class MotionDetector:
         if self.thread:
             self.thread.join()
         print("Motion detection stopped.")
-Get current settings
+
+    def _detect_loop(self):
+        while self.running:
+            # Get current settings
             blur_size = get_setting('BLUR_KERNEL', 15)
             thresh_value = get_setting('THRESH_VALUE', 35)
             dilate_iterations = get_setting('DILATE_ITERATIONS', 2)
@@ -105,10 +108,7 @@ Get current settings
                 filename = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
                 cv2.imwrite(filename, self.picam2.capture_array("main"))
                 print(f"Motion detected! Image saved as {filename}")
-                time.sleep(cooldowndir, f"motion_{timestamp}.jpg")
-                cv2.imwrite(filename, self.picam2.capture_array("main"))
-                print(f"Motion detected! Image saved as {filename}")
-                time.sleep(MOTION_COOLDOWN_SECONDS)
+                time.sleep(cooldown)
             self.frame1 = frame2
             time.sleep(0.1)
 
@@ -117,6 +117,14 @@ Get current settings
         filename = os.path.join(self.save_dir, f"capture_{timestamp}.jpg")
         if self.picam2:
             self.picam2.capture_file(filename)
+            print(f"Image captured: {filename}")
+            cleanup_old_files(self.save_dir)
+            return filename
+        else:
+            print("Camera not initialized")
+            return None
+
+    def capture_timelapse(self):
         brightness_threshold = get_setting('TIMELAPSE_BRIGHTNESS_THRESHOLD', 40)
         print("Timelapse job triggered")
         # Grab a low-res frame and check brightness
@@ -128,15 +136,7 @@ Get current settings
                 mean_brightness = np.mean(preview_gray)
                 print(f"Timelapse preview brightness: {mean_brightness:.1f}")
                 if mean_brightness < brightness_threshold:
-                    print(f"Too dark for timelapse (threshold: {brightness_threshold
-            try:
-                preview_yuv = self.picam2.capture_array("lores")
-                preview_color = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2RGB_I420)
-                preview_gray = cv2.cvtColor(preview_color, cv2.COLOR_BGR2GRAY)
-                mean_brightness = np.mean(preview_gray)
-                print(f"Timelapse preview brightness: {mean_brightness:.1f}")
-                if mean_brightness < TIMELAPSE_BRIGHTNESS_THRESHOLD:
-                    print(f"Too dark for timelapse (threshold: {TIMELAPSE_BRIGHTNESS_THRESHOLD}), skipping.")
+                    print(f"Too dark for timelapse (threshold: {brightness_threshold}), skipping.")
                     return None
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.timelapse_dir, f"timelapse_{timestamp}.jpg")
@@ -149,8 +149,7 @@ Get current settings
                 return None
         else:
             print("Camera not initialized for timelapse")
-    interval_minutes = get_setting('SCHEDULER_INTERVAL_MINUTES', 30)
-    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=interval_minutes
+            return None
 
 # Global instances
 detector = MotionDetector()
@@ -158,7 +157,8 @@ scheduler = BackgroundScheduler()
 
 def main():
     detector.start()
-    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=SCHEDULER_INTERVAL_MINUTES)
+    interval_minutes = get_setting('SCHEDULER_INTERVAL_MINUTES', 30)
+    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=interval_minutes)
     scheduler.start()
     try:
         while True:
