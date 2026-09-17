@@ -108,14 +108,16 @@ class MotionDetector:
             fgmask = cv2.dilate(fgmask, None, iterations=dilate_iterations)
             # Find contours
             contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            max_area = max((cv2.contourArea(c) for c in contours), default=0)
+            largest = max(contours, key=cv2.contourArea, default=None)
+            max_area = cv2.contourArea(largest) if largest is not None else 0
             fg_ratio = cv2.countNonZero(fgmask) / fgmask.size
             motion_detected = max_area > contour_threshold
             if motion_detected and (time.time() - self.last_capture) >= cooldown:
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
                 cv2.imwrite(filename, self.picam2.capture_array("main"))
-                print(f"Motion detected! largest_blob={max_area:.0f}px frame_changed={fg_ratio*100:.1f}% Image saved as {filename}")
+                x, y, w, h = cv2.boundingRect(largest)
+                print(f"Motion detected! largest_blob={max_area:.0f}px at ({x},{y},{w}x{h}) of {LORES_RES} frame_changed={fg_ratio*100:.1f}% Image saved as {filename}")
                 self.last_capture = time.time()
             time.sleep(0.1)
 
