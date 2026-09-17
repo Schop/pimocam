@@ -13,7 +13,7 @@ LORES_RES = (640, 480)
 # Motion detection settings
 CONTOUR_THRESHOLD = 300  # Minimum contour area for motion detection
 BLUR_KERNEL = (15, 15)  # Gaussian blur kernel size
-THRESH_VALUE = 35  # Threshold value for binary threshold
+THRESH_VALUE = 40  # Sensitivity of the background model (MOG2 varThreshold)
 DILATE_ITERATIONS = 2  # Dilate iterations
 MOTION_COOLDOWN_SECONDS = 5  # Minimum seconds between motion captures
 

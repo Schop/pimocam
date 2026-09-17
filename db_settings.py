@@ -23,11 +23,11 @@ SETTINGS_METADATA = {
         'category': 'Motion Detection'
     },
     'THRESH_VALUE': {
-        'value': 35,
+        'value': 40,
         'type': 'int',
         'min': 10,
         'max': 100,
-        'description': 'Threshold for detecting changes. Lower = more sensitive to subtle movements.',
+        'description': 'Sensitivity of the background model (MOG2 varThreshold). Lower = more sensitive to subtle movement like leaves; higher = only strong/solid objects trigger.',
         'category': 'Motion Detection'
     },
     'DILATE_ITERATIONS': {

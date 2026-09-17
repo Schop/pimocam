@@ -47,7 +47,7 @@ class MotionDetector:
         os.makedirs(self.save_dir, exist_ok=True)
         self.timelapse_dir = TIME_LAPSE_DIR
         os.makedirs(self.timelapse_dir, exist_ok=True)
-        self.frame1 = None
+        self.bg_subtractor = None
         self.thread = None
         self.last_capture = 0
 
@@ -61,12 +61,17 @@ class MotionDetector:
             self.picam2.configure(config)
             self.picam2.start()
             time.sleep(2)
-            # Capture first frame
-            frame1_yuv = self.picam2.capture_array("lores")
-            frame1_color = cv2.cvtColor(frame1_yuv, cv2.COLOR_YUV2RGB_I420)
-            self.frame1 = cv2.cvtColor(frame1_color, cv2.COLOR_BGR2GRAY)
             blur_size = get_setting('BLUR_KERNEL', 15)
-            self.frame1 = cv2.GaussianBlur(self.frame1, (blur_size, blur_size), 0)
+            thresh_value = get_setting('THRESH_VALUE', 40)
+            self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=thresh_value, detectShadows=True)
+            # Warm up the background model so repetitive motion (e.g. wind-blown
+            # foliage) is learned as background before the detection loop starts acting on it.
+            for _ in range(50):
+                warmup_yuv = self.picam2.capture_array("lores")
+                warmup_gray = cv2.cvtColor(warmup_yuv, cv2.COLOR_YUV2GRAY_I420)
+                warmup_gray = cv2.GaussianBlur(warmup_gray, (blur_size, blur_size), 0)
+                self.bg_subtractor.apply(warmup_gray)
+                time.sleep(0.1)
             print("Motion detection started.")
             self.thread = threading.Thread(target=self._detect_loop)
             self.thread.start()
@@ -86,30 +91,30 @@ class MotionDetector:
         while self.running:
             # Get current settings
             blur_size = get_setting('BLUR_KERNEL', 15)
-            thresh_value = get_setting('THRESH_VALUE', 35)
+            thresh_value = get_setting('THRESH_VALUE', 40)
             dilate_iterations = get_setting('DILATE_ITERATIONS', 2)
             contour_threshold = get_setting('CONTOUR_THRESHOLD', 300)
             cooldown = get_setting('MOTION_COOLDOWN_SECONDS', 5)
-            
+            self.bg_subtractor.setVarThreshold(thresh_value)
+
             # Capture current frame
-            frame2_yuv = self.picam2.capture_array("lores")
-            frame2_color = cv2.cvtColor(frame2_yuv, cv2.COLOR_YUV2RGB_I420)
-            frame2 = cv2.cvtColor(frame2_color, cv2.COLOR_BGR2GRAY)
-            frame2 = cv2.GaussianBlur(frame2, (blur_size, blur_size), 0)
-            # Compute the absolute difference
-            frame_diff = cv2.absdiff(self.frame1, frame2)
-            thresh = cv2.threshold(frame_diff, thresh_value, 255, cv2.THRESH_BINARY)[1]
-            thresh = cv2.dilate(thresh, None, iterations=dilate_iterations)
+            frame_yuv = self.picam2.capture_array("lores")
+            frame_gray = cv2.cvtColor(frame_yuv, cv2.COLOR_YUV2GRAY_I420)
+            frame_gray = cv2.GaussianBlur(frame_gray, (blur_size, blur_size), 0)
+            # Update the adaptive background model and get the foreground mask
+            fgmask = self.bg_subtractor.apply(frame_gray)
+            # Drop shadow pixels (value 127) that MOG2 flags separately from real foreground (255)
+            fgmask = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)[1]
+            fgmask = cv2.dilate(fgmask, None, iterations=dilate_iterations)
             # Find contours
-            contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             motion_detected = any(cv2.contourArea(contour) > contour_threshold for contour in contours)
-            if motion_detected:
+            if motion_detected and (time.time() - self.last_capture) >= cooldown:
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
                 cv2.imwrite(filename, self.picam2.capture_array("main"))
                 print(f"Motion detected! Image saved as {filename}")
-                time.sleep(cooldown)
-            self.frame1 = frame2
+                self.last_capture = time.time()
             time.sleep(0.1)
 
     def capture_image(self):
@@ -131,8 +136,7 @@ class MotionDetector:
         if self.picam2:
             try:
                 preview_yuv = self.picam2.capture_array("lores")
-                preview_color = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2RGB_I420)
-                preview_gray = cv2.cvtColor(preview_color, cv2.COLOR_BGR2GRAY)
+                preview_gray = cv2.cvtColor(preview_yuv, cv2.COLOR_YUV2GRAY_I420)
                 mean_brightness = np.mean(preview_gray)
                 print(f"Timelapse brightness: {mean_brightness:.1f} (threshold: {brightness_threshold})")
                 if mean_brightness < brightness_threshold:
