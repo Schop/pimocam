@@ -46,6 +46,12 @@ SETTINGS_METADATA = {
         'description': 'Minimum seconds between motion captures to avoid duplicate photos.',
         'category': 'Motion Detection'
     },
+    'MOTION_IGNORE_ZONES': {
+        'value': '',
+        'type': 'string',
+        'description': 'Rectangles to exclude from motion detection, in the 640x480 low-res frame: "x1,y1,x2,y2" per zone, multiple zones separated by ";". Use this for things like wind-blown foliage that keeps falsely triggering captures. Leave empty to disable.',
+        'category': 'Motion Detection'
+    },
     'TIMELAPSE_BRIGHTNESS_THRESHOLD': {
         'value': 40,
         'type': 'int',

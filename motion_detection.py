@@ -27,6 +27,20 @@ def cleanup_old_files(directory, min_free_gb=None):
             except OSError as e:
                 print(f"Error deleting {oldest}: {e}")
 
+def parse_ignore_zones(zones_str):
+    """Parse "x1,y1,x2,y2;x1,y1,x2,y2" into a list of int rectangle tuples."""
+    zones = []
+    for part in (zones_str or '').split(';'):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            x1, y1, x2, y2 = (int(v) for v in part.split(','))
+            zones.append((x1, y1, x2, y2))
+        except ValueError:
+            print(f"Ignoring invalid MOTION_IGNORE_ZONES entry: {part!r}")
+    return zones
+
 def sync_to_gdrive():
     try:
         # Sync pictures
@@ -95,6 +109,7 @@ class MotionDetector:
             dilate_iterations = get_setting('DILATE_ITERATIONS', 2)
             contour_threshold = get_setting('CONTOUR_THRESHOLD', 300)
             cooldown = get_setting('MOTION_COOLDOWN_SECONDS', 5)
+            ignore_zones = parse_ignore_zones(get_setting('MOTION_IGNORE_ZONES', ''))
             self.bg_subtractor.setVarThreshold(thresh_value)
 
             # Capture current frame
@@ -105,6 +120,9 @@ class MotionDetector:
             fgmask = self.bg_subtractor.apply(frame_gray)
             # Drop shadow pixels (value 127) that MOG2 flags separately from real foreground (255)
             fgmask = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)[1]
+            # Blank out configured ignore zones (e.g. wind-blown foliage) before looking for motion
+            for x1, y1, x2, y2 in ignore_zones:
+                cv2.rectangle(fgmask, (x1, y1), (x2, y2), 0, -1)
             fgmask = cv2.dilate(fgmask, None, iterations=dilate_iterations)
             # Find contours
             contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
