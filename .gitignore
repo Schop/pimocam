@@ -21,11 +21,14 @@ coverage.xml
 .pytest_cache
 .hypothesis
 
-# Optional: ignore saved images if you don't want them in repo
-# Pictures/
-# motion_*.jpg
+# Captured media (created at runtime on the Pi)
+pictures/
+clips/
 
 # SQLite temporary files (don't commit these)
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Local Claude Code settings
+.claude/
