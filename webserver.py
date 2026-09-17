@@ -1,15 +1,9 @@
-from flask import Flask, jsonify, send_from_directory, render_template, flash, redirect, url_for, request
-import importlib
-import sys
-import re
-from motion_detection import detector
+from flask import Flask, send_from_directory, render_template, flash, redirect, url_for
 import os
 import logging
 import shutil
 from datetime import datetime
-import subprocess
-import psutil
-from db_settings import get_all_settings, get_settings_by_category, get_setting, set_setting, reset_to_defaults
+from camera import camera
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'  # Needed for flashing messages
@@ -19,292 +13,114 @@ log = logging.getLogger('werkzeug')
 log.disabled = True
 app.logger.disabled = True
 
-# API: Get all settings
-@app.route('/api/settings', methods=['GET'])
-def api_get_settings():
-    """Get all settings organized by category"""
-    try:
-        settings = get_settings_by_category()
-        return jsonify({'success': True, 'settings': settings})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Update a setting
-@app.route('/api/settings/<key>', methods=['POST'])
-def api_update_setting(key):
-    """Update a single setting"""
-    try:
-        data = request.get_json()
-        value = data.get('value')
-        if value is None:
-            return jsonify({'success': False, 'error': 'Missing value'}), 400
-        set_setting(key, value)
-        return jsonify({'success': True, 'message': f'{key} updated successfully'})
-    except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-# API: Reset all settings to defaults
-@app.route('/api/settings/reset', methods=['POST'])
-def api_reset_settings():
-    """Reset all settings to default values"""
-    try:
-        reset_to_defaults()
-        return jsonify({'success': True, 'message': 'All settings reset to defaults'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-# Settings page
-@app.route('/settings', methods=['GET', 'POST'])
-def settings_page():
-    message = None
-    message_type = 'success'
-    
-    if request.method == 'POST':
-        try:
-            # Check if this is a reset request
-            if 'reset' in request.form:
-                reset_to_defaults()
-                message = 'All settings reset to defaults!'
-            else:
-                # Update individual settings
-                for key, value in request.form.items():
-                    if key != 'csrf_token':  # Skip CSRF token if present
-                        try:
-                            set_setting(key, value)
-                        except ValueError as e:
-                            message = f'Error updating {key}: {str(e)}'
-                            message_type = 'error'
-                            break
-                else:
-                    message = 'Settings updated successfully!'
-        except Exception as e:
-            message = f'Error: {str(e)}'
-            message_type = 'error'
-    
-    settings_dict = get_settings_by_category()
-    return render_template('settings.html', settings=settings_dict, message=message, message_type=message_type)
-
+def _list_files(directory, extension):
+    items = []
+    for f in os.listdir(directory):
+        if f.endswith(extension):
+            path = os.path.join(directory, f)
+            items.append({
+                'name': f,
+                'size': os.path.getsize(path),
+                'mtime': datetime.fromtimestamp(os.path.getmtime(path)),
+            })
+    items.sort(key=lambda x: x['mtime'], reverse=True)
+    return items
 
 
 @app.route('/')
 def index():
-    save_dir = detector.save_dir
-    images = []
-    for f in os.listdir(save_dir):
-        if f.endswith('.jpg'):
-            path = os.path.join(save_dir, f)
-            size = os.path.getsize(path)
-            mtime = os.path.getmtime(path)
-            mtime_dt = datetime.fromtimestamp(mtime)
-            images.append({'name': f, 'size': size, 'mtime': mtime_dt})
-    images.sort(key=lambda x: x['mtime'], reverse=True)  # Newest first
-    images = images[:25]  # Limit to 25 most recent images
-    free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
+    images = _list_files(camera.save_dir, '.jpg')[:25]
+    free_space = shutil.disk_usage('/').free / (1024**3)
     return render_template('index.html', images=images, free_space=free_space)
 
-@app.route('/timelapse')
-def timelapse():
-    import cv2
-    import numpy as np
-    save_dir = detector.timelapse_dir
-    images = []
-    for f in os.listdir(save_dir):
-        if f.endswith('.jpg'):
-            path = os.path.join(save_dir, f)
-            size = os.path.getsize(path)
-            mtime = os.path.getmtime(path)
-            mtime_dt = datetime.fromtimestamp(mtime)
-            
-            # Calculate brightness
-            try:
-                img = cv2.imread(path)
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                brightness = np.mean(gray)
-            except:
-                brightness = None
-            
-            images.append({'name': f, 'size': size, 'mtime': mtime_dt, 'brightness': brightness})
-    images.sort(key=lambda x: x['mtime'], reverse=True)
-    images = images[:25]  # Limit to 25 most recent images
-    free_space = shutil.disk_usage('/').free / (1024**3)  # Free space in GB
-    return render_template('timelapse.html', images=images, free_space=free_space)
 
-@app.route('/capture_timelapse', methods=['POST'])
-def capture_timelapse_now():
-    try:
-        result = detector.capture_timelapse()
-        if isinstance(result, dict):
-            if result['success']:
-                brightness = result.get('brightness', 'N/A')
-                flash(f"Timelapse captured successfully! Brightness: {brightness:.1f}")
-            else:
-                reason = result.get('reason')
-                if reason == 'too_dark':
-                    brightness = result.get('brightness', 'N/A')
-                    threshold = result.get('threshold', 'N/A')
-                    flash(f"Too dark for timelapse. Brightness: {brightness:.1f}, Threshold: {threshold}")
-                elif reason == 'camera_not_ready':
-                    flash("Camera not ready. Please wait a moment and try again.")
-                else:
-                    error = result.get('error', 'Unknown error')
-                    flash(f"Error: {error}")
-        else:
-            # Backwards compatibility with old return format
-            if result:
-                flash(f"Timelapse captured successfully!")
-            else:
-                flash(f"Timelapse skipped")
-    except Exception as e:
-        flash(f"Error capturing timelapse: {str(e)}")
-    return redirect(url_for('timelapse'))
+@app.route('/clips')
+def clips():
+    videos = _list_files(camera.clips_dir, '.mp4')[:25]
+    free_space = shutil.disk_usage('/').free / (1024**3)
+    return render_template('clips.html', videos=videos, free_space=free_space)
 
-@app.route('/timelapse/<filename>')
-def view_timelapse_image(filename):
-    # Get all timelapse images sorted by name (newest first)
-    images = sorted([f for f in os.listdir(detector.timelapse_dir) if f.endswith('.jpg')], reverse=True)
-    current_index = images.index(filename) if filename in images else -1
-    prev_image = images[current_index - 1] if current_index > 0 else None
-    next_image = images[current_index + 1] if current_index < len(images) - 1 else None
-    return render_template('view_timelapse.html', filename=filename, prev_image=prev_image, next_image=next_image)
-
-@app.route('/timelapse_image/<filename>')
-def get_timelapse_image(filename):
-    return send_from_directory(detector.timelapse_dir, filename)
 
 @app.route('/view/<filename>')
 def view_image(filename):
-    # Get all motion images sorted by name (newest first)
-    images = sorted([f for f in os.listdir(detector.save_dir) if f.endswith('.jpg')], reverse=True)
+    images = sorted([f for f in os.listdir(camera.save_dir) if f.endswith('.jpg')], reverse=True)
     current_index = images.index(filename) if filename in images else -1
     prev_image = images[current_index - 1] if current_index > 0 else None
     next_image = images[current_index + 1] if current_index < len(images) - 1 else None
     return render_template('view.html', filename=filename, prev_image=prev_image, next_image=next_image)
 
+
+@app.route('/view_clip/<filename>')
+def view_clip(filename):
+    videos = sorted([f for f in os.listdir(camera.clips_dir) if f.endswith('.mp4')], reverse=True)
+    current_index = videos.index(filename) if filename in videos else -1
+    prev_video = videos[current_index - 1] if current_index > 0 else None
+    next_video = videos[current_index + 1] if current_index < len(videos) - 1 else None
+    return render_template('view_clip.html', filename=filename, prev_video=prev_video, next_video=next_video)
+
+
+@app.route('/images/<filename>')
+def get_image(filename):
+    return send_from_directory(camera.save_dir, filename)
+
+
+@app.route('/clips/<filename>')
+def get_clip(filename):
+    return send_from_directory(camera.clips_dir, filename)
+
+
+@app.route('/delete/<filename>', methods=['POST'])
+def delete_image(filename):
+    try:
+        filepath = os.path.join(camera.save_dir, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            flash(f"Deleted {filename}")
+        else:
+            flash(f"File {filename} not found")
+    except Exception as e:
+        flash(f"Error deleting {filename}: {str(e)}")
+    return redirect(url_for('index'))
+
+
+@app.route('/delete_clip/<filename>', methods=['POST'])
+def delete_clip(filename):
+    try:
+        filepath = os.path.join(camera.clips_dir, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            flash(f"Deleted {filename}")
+        else:
+            flash(f"File {filename} not found")
+    except Exception as e:
+        flash(f"Error deleting {filename}: {str(e)}")
+    return redirect(url_for('clips'))
+
+
 @app.route('/start')
 def start():
     try:
-        detector.start()
+        camera.start()
         flash("Motion detection started.")
     except Exception as e:
         flash(f"Failed to start motion detection: {str(e)}")
     return redirect(url_for('index'))
 
+
 @app.route('/stop')
 def stop():
     try:
-        detector.stop()
+        camera.stop()
         flash("Motion detection stopped.")
     except Exception as e:
         flash(f"Failed to stop motion detection: {str(e)}")
     return redirect(url_for('index'))
 
-@app.route('/images')
-def list_images():
-    save_dir = detector.save_dir
-    images = [f for f in os.listdir(save_dir) if f.endswith('.jpg')]
-    images.sort(reverse=True)  # Sort by name descending (newest first, assuming timestamped names)
-    return render_template('images.html', images=images)
-
-@app.route('/images/<filename>')
-def get_image(filename):
-    return send_from_directory(detector.save_dir, filename)
-
-@app.route('/delete/<filename>', methods=['POST'])
-def delete_image(filename):
-    try:
-        filepath = os.path.join(detector.save_dir, filename)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            flash(f"Deleted {filename}")
-        else:
-            flash(f"File {filename} not found")
-    except Exception as e:
-        flash(f"Error deleting {filename}: {str(e)}")
-    return redirect(url_for('index'))
-
-@app.route('/delete_timelapse/<filename>', methods=['POST'])
-def delete_timelapse(filename):
-    try:
-        filepath = os.path.join(detector.timelapse_dir, filename)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            flash(f"Deleted {filename}")
-        else:
-            flash(f"File {filename} not found")
-    except Exception as e:
-        flash(f"Error deleting {filename}: {str(e)}")
-    return redirect(url_for('timelapse'))
-
-@app.route('/stats')
-def stats():
-    # Get process information
-    try:
-        current_process = psutil.Process()
-        start_time = datetime.fromtimestamp(current_process.create_time())
-        uptime = datetime.now() - start_time
-        uptime_str = str(uptime).split('.')[0]  # Remove microseconds
-    except:
-        uptime_str = "Unknown"
-    
-    # Count files in directories
-    motion_count = len([f for f in os.listdir(detector.save_dir) if f.endswith('.jpg')])
-    timelapse_count = len([f for f in os.listdir(detector.timelapse_dir) if f.endswith('.jpg')])
-    
-    # Get disk space
-    free_space_gb = shutil.disk_usage('/').free / (1024**3)
-    total_space_gb = shutil.disk_usage('/').total / (1024**3)
-    used_space_gb = total_space_gb - free_space_gb
-    
-    # Calculate directory sizes
-    try:
-        motion_size = sum(os.path.getsize(os.path.join(detector.save_dir, f)) 
-                         for f in os.listdir(detector.save_dir) if f.endswith('.jpg')) / (1024**2)
-        timelapse_size = sum(os.path.getsize(os.path.join(detector.timelapse_dir, f)) 
-                            for f in os.listdir(detector.timelapse_dir) if f.endswith('.jpg')) / (1024**2)
-    except:
-        motion_size = 0
-        timelapse_size = 0
-    
-    # Get recent logs (last 50 lines)
-    try:
-        result = subprocess.run(['journalctl', '-u', 'pimocam', '-n', '50', '--no-pager'], 
-                               capture_output=True, text=True, timeout=5)
-        logs = result.stdout.split('\n')
-    except:
-        logs = ["Could not retrieve logs"]
-    
-    # Get current settings
-    settings = get_all_settings()
-    
-    stats_data = {
-        'uptime': uptime_str,
-        'motion_count': motion_count,
-        'timelapse_count': timelapse_count,
-        'motion_size_mb': motion_size,
-        'timelapse_size_mb': timelapse_size,
-        'free_space_gb': free_space_gb,
-        'used_space_gb': used_space_gb,
-        'total_space_gb': total_space_gb,
-        'logs': logs,
-        'settings': settings
-    }
-    
-    return render_template('stats.html', stats=stats_data)
 
 if __name__ == '__main__':
-    from motion_detection import scheduler
-    from settings import WEBSERVER_HOST
-    from db_settings import get_setting
-    print("Starting detector...")
-    detector.start()
-    print("Adding timelapse job...")
-    interval_minutes = get_setting('SCHEDULER_INTERVAL_MINUTES', 30)
-    scheduler.add_job(func=lambda: detector.capture_timelapse(), trigger="interval", minutes=interval_minutes)
-    print("Starting scheduler...")
-    scheduler.start()
+    from settings import WEBSERVER_HOST, WEBSERVER_PORT
+    print("Starting camera...")
+    camera.start()
     print("Starting webserver...")
-    port = get_setting('WEBSERVER_PORT', 5000)
-    debug = get_setting('WEBSERVER_DEBUG', True)
-    app.run(host=WEBSERVER_HOST, port=port, debug=debug)
+    app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT, debug=False)

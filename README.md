@@ -1,32 +1,30 @@
-# Raspberry Pi Motion Detection Camera
+# Raspberry Pi Door Camera
 
-A Python-based motion detection system for Raspberry Pi with web interface and scheduled captures.
+A Python-based motion-triggered camera for a Raspberry Pi, watching a front door/driveway. Saves a photo and a short video clip on each motion event, with a web interface for browsing captures.
 
 ## Features
-- Motion-triggered image capture
-- Time-based scheduled captures (default: every hour)
-- Web interface for control and viewing images
-- Configurable save directory via environment variable
+- Motion-triggered photo + video clip capture (OpenCV MOG2 background subtraction)
+- Configurable ignore zones to exclude parts of the frame (e.g. a plant moving in the wind)
+- Web interface for browsing photos and clips
+- Configurable save directories via environment variables
 
 ## Setup
 1. Clone the repository: `git clone https://github.com/Schop/pimocam.git`
 2. Install dependencies: `pip install -r requirements.txt`
-3. Run: `python main.py`
+3. Install ffmpeg (used to encode video clips): `sudo apt install ffmpeg`
+4. Run: `python webserver.py`
 
 ## Configuration
-- Edit `settings.py` to customize:
-  - Save directory, camera resolutions, motion detection thresholds, scheduler interval, webserver settings
-- Set `SAVE_DIR` environment variable to override: `export SAVE_DIR=/path/to/save`
+- Edit `settings.py` to customize save directories, camera resolutions, and motion detection tuning (sensitivity, minimum motion size, cooldown, clip length, ignore zones).
+- Set `SAVE_DIR`/`CLIPS_DIR` environment variables to override the default save locations.
 
 ## Web Interface
 - Access at `http://your_pi_ip:5000`
-- Start/Stop motion detection
-- Manual capture
-- List and view saved images
+- Browse recent photos (`/`) and clips (`/clips`)
+- Start/stop motion detection (`/start`, `/stop`)
 
 ## Files
-- `main.py`: Entry point
-- `motion_detection.py`: Core detection and scheduling logic
-- `webserver.py`: Flask web interface
+- `webserver.py`: Entry point and Flask web interface
+- `camera.py`: Camera lifecycle and motion detection/capture logic
 - `settings.py`: Configuration settings
 - `requirements.txt`: Dependencies
