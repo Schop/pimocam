@@ -74,11 +74,14 @@ class DoorCamera:
 
     def stop(self):
         self.running = False
+        # Wait for the detect loop to fully exit (it may be mid-recording) before touching
+        # picam2 here, since it also stops/restarts the camera after each capture event -
+        # doing both from separate threads at once corrupts picamera2's internal state.
+        if self.thread:
+            self.thread.join()
         if self.picam2:
             self.picam2.stop()
             self.picam2.close()
-        if self.thread:
-            self.thread.join()
         print("Motion detection stopped.")
 
     def _detect_loop(self):
