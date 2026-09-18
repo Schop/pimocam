@@ -7,7 +7,7 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FfmpegOutput
 from settings import (
-    SAVE_DIR, CLIPS_DIR, MAIN_RES, LORES_RES,
+    SAVE_DIR, CLIPS_DIR, MAIN_RES, LORES_RES, RECORDING_FPS,
     CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS,
     MOTION_COOLDOWN_SECONDS, MOTION_CLIP_SECONDS, MOTION_IGNORE_ZONES,
     MIN_FREE_GB,
@@ -48,7 +48,11 @@ class DoorCamera:
         self.running = True
         try:
             self.picam2 = Picamera2()
-            config = self.picam2.create_preview_configuration(main={"size": MAIN_RES, "format": "RGB888"}, lores={"size": LORES_RES})
+            frame_duration_us = int(1_000_000 / RECORDING_FPS)
+            config = self.picam2.create_preview_configuration(
+                main={"size": MAIN_RES, "format": "RGB888"}, lores={"size": LORES_RES},
+                controls={"FrameDurationLimits": (frame_duration_us, frame_duration_us)},
+            )
             self.picam2.configure(config)
             self.picam2.start()
             time.sleep(2)
@@ -106,7 +110,7 @@ class DoorCamera:
         cleanup_old_files(self.save_dir)
 
         clip_path = os.path.join(self.clips_dir, f"motion_{timestamp}.mp4")
-        encoder = H264Encoder()
+        encoder = H264Encoder(framerate=RECORDING_FPS)
         output = FfmpegOutput(clip_path)
         try:
             self.picam2.start_recording(encoder, output)

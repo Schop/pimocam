@@ -7,6 +7,7 @@ CLIPS_DIR = os.getenv('CLIPS_DIR', os.path.join(os.path.dirname(__file__), 'clip
 # Camera resolutions
 MAIN_RES = (1640, 1232)
 LORES_RES = (640, 480)
+RECORDING_FPS = 15  # Fixed capture rate; must match what the encoder assumes or clips play at the wrong duration
 
 # Motion detection settings
 CONTOUR_THRESHOLD = 800  # Minimum contour area for motion detection (people/animals/cars, not small birds)
