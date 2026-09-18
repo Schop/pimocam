@@ -123,14 +123,26 @@ class DoorCamera:
             motion_detected = max_area > self.contour_threshold
             if motion_detected and (time.time() - self.last_capture) >= MOTION_COOLDOWN_SECONDS:
                 self.last_capture = time.time()
-                self._capture_event()
+                self._capture_event(max_area)
             time.sleep(0.1)
 
-    def _capture_event(self):
+    def _capture_event(self, contour_area):
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         photo_path = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
         cv2.imwrite(photo_path, self.picam2.capture_array("main"))
         print(f"Motion detected! Photo saved as {photo_path}")
+        print(f"  Trigger values: contour_area={contour_area:.0f}, contour_threshold={self.contour_threshold}, thresh_value={self.thresh_value}")
+
+        # Sidecar file recording the values that triggered this capture, so the web UI
+        # can show them next to the photo to help tune sensitivity settings.
+        metadata_path = os.path.splitext(photo_path)[0] + '.json'
+        with open(metadata_path, 'w') as f:
+            json.dump({
+                'contour_area': contour_area,
+                'contour_threshold': self.contour_threshold,
+                'thresh_value': self.thresh_value,
+            }, f)
+
         cleanup_old_files(self.save_dir)
 
         clip_path = os.path.join(self.clips_dir, f"motion_{timestamp}.mp4")
