@@ -43,6 +43,11 @@ def _list_files(directory, extension):
     return items
 
 
+@app.context_processor
+def inject_camera_running():
+    return {'camera_running': camera.running}
+
+
 @app.route('/')
 def index():
     images = _list_files(camera.save_dir, '.jpg')[:25]
@@ -116,6 +121,34 @@ def delete_clip(filename):
     return redirect(url_for('clips'))
 
 
+@app.route('/delete_all', methods=['POST'])
+def delete_all_images():
+    deleted = 0
+    for f in os.listdir(camera.save_dir):
+        if f.endswith('.jpg') or f.endswith('.json'):
+            try:
+                os.remove(os.path.join(camera.save_dir, f))
+                deleted += 1
+            except OSError as e:
+                flash(f"Error deleting {f}: {str(e)}")
+    flash(f"Deleted {deleted} photo(s).")
+    return redirect(url_for('index'))
+
+
+@app.route('/delete_all_clips', methods=['POST'])
+def delete_all_clips():
+    deleted = 0
+    for f in os.listdir(camera.clips_dir):
+        if f.endswith('.mp4'):
+            try:
+                os.remove(os.path.join(camera.clips_dir, f))
+                deleted += 1
+            except OSError as e:
+                flash(f"Error deleting {f}: {str(e)}")
+    flash(f"Deleted {deleted} clip(s).")
+    return redirect(url_for('clips'))
+
+
 @app.route('/start')
 def start():
     try:
@@ -123,7 +156,7 @@ def start():
         flash("Motion detection started.")
     except Exception as e:
         flash(f"Failed to start motion detection: {str(e)}")
-    return redirect(url_for('index'))
+    return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/stop')
@@ -133,7 +166,7 @@ def stop():
         flash("Motion detection stopped.")
     except Exception as e:
         flash(f"Failed to stop motion detection: {str(e)}")
-    return redirect(url_for('index'))
+    return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/settings', methods=['GET'])

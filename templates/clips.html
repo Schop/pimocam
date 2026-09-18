@@ -13,11 +13,16 @@
     </script>
 </head>
 <body>
-    <div class="container mt-5">
+    {% include '_nav.html' %}
+    <div class="container">
         <h1 class="mb-4">Door Camera - Clips</h1>
         <p class="text-muted">Free disk space: {{ "%.2f"|format(free_space) }} GB | Showing {{ videos|length }} most recent clips</p>
-        <a href="/" class="btn btn-info mb-4">View Photos</a>
-        <a href="/settings" class="btn btn-secondary mb-4">Settings</a>
+        {% if videos %}
+        <form method="post" action="/delete_all_clips" style="display: inline;" class="mb-4"
+              onsubmit="return confirm('Delete ALL clips? This cannot be undone.');">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Delete All Clips</button>
+        </form>
+        {% endif %}
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 <div class="alert alert-success alert-dismissible fade show" role="alert">

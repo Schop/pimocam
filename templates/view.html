@@ -17,9 +17,8 @@
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <a href="/" class="btn btn-secondary mb-3">Back to Index</a>
-        
+    {% include '_nav.html' %}
+    <div class="container">
         <!-- Previous Button -->
         {% if prev_image %}
         <div class="nav-buttons left">
