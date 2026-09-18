@@ -76,6 +76,7 @@ class DoorCamera:
         self.running = False
         if self.picam2:
             self.picam2.stop()
+            self.picam2.close()
         if self.thread:
             self.thread.join()
         print("Motion detection stopped.")
