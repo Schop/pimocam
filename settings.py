@@ -5,7 +5,7 @@ SAVE_DIR = os.getenv('SAVE_DIR', os.path.join(os.path.dirname(__file__), 'pictur
 CLIPS_DIR = os.getenv('CLIPS_DIR', os.path.join(os.path.dirname(__file__), 'clips'))
 
 # Camera resolutions
-MAIN_RES = (2304, 1296)
+MAIN_RES = (1640, 1232)
 LORES_RES = (640, 480)
 
 # Motion detection settings
