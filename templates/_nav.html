@@ -7,6 +7,9 @@
             <a class="nav-link {% if request.path == '/settings' %}active fw-bold{% endif %}" href="/settings">Settings</a>
         </div>
         <div class="d-flex align-items-center">
+            <form method="post" action="/capture" class="me-2">
+                <button type="submit" class="btn btn-outline-light btn-sm" {% if not camera_running %}disabled title="Camera is stopped"{% endif %}>Take Photo</button>
+            </form>
             {% if camera_running %}
                 <span class="badge bg-success me-2">Running</span>
                 <a href="/stop" class="btn btn-danger btn-sm">Stop</a>

@@ -149,6 +149,19 @@ def delete_all_clips():
     return redirect(url_for('clips'))
 
 
+@app.route('/capture', methods=['POST'])
+def capture():
+    try:
+        filename = camera.capture_image()
+        if filename:
+            flash(f"Photo captured: {os.path.basename(filename)}")
+        else:
+            flash("Failed to capture photo: camera is not running.")
+    except Exception as e:
+        flash(f"Failed to capture photo: {str(e)}")
+    return redirect(request.referrer or url_for('index'))
+
+
 @app.route('/start')
 def start():
     try:

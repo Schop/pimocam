@@ -177,16 +177,17 @@ class DoorCamera:
         cleanup_old_files(self.clips_dir)
 
     def capture_image(self):
+        # self.picam2 stays a closed instance after stop() rather than becoming None,
+        # so it isn't enough on its own to tell whether the camera can actually capture.
+        if not self.running or not self.picam2:
+            print("Camera not running")
+            return None
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filename = os.path.join(self.save_dir, f"capture_{timestamp}.jpg")
-        if self.picam2:
-            self.picam2.capture_file(filename)
-            print(f"Image captured: {filename}")
-            cleanup_old_files(self.save_dir)
-            return filename
-        else:
-            print("Camera not initialized")
-            return None
+        self.picam2.capture_file(filename)
+        print(f"Image captured: {filename}")
+        cleanup_old_files(self.save_dir)
+        return filename
 
     def update_settings(self, contour_threshold=None, thresh_value=None, dilate_iterations=None):
         """Validate and apply new motion-sensitivity settings live, then persist them.
