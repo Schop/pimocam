@@ -123,15 +123,30 @@ class DoorCamera:
             motion_detected = max_area > self.contour_threshold
             if motion_detected and (time.time() - self.last_capture) >= MOTION_COOLDOWN_SECONDS:
                 self.last_capture = time.time()
-                self._capture_event(max_area)
+                # Bounding box of the triggering blob, in lores (640x480) coordinates -
+                # same coordinate space as MOTION_IGNORE_ZONES.
+                bbox = cv2.boundingRect(largest)
+                self._capture_event(max_area, bbox)
             time.sleep(0.1)
 
-    def _capture_event(self, contour_area):
+    def _capture_event(self, contour_area, bbox):
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         photo_path = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
-        cv2.imwrite(photo_path, self.picam2.capture_array("main"))
+        frame = self.picam2.capture_array("main")
+
+        # Draw the triggering blob's bounding box on the saved photo, scaled up from the
+        # lores detection frame to the main frame, so it's obvious what caused the capture.
+        x, y, w, h = bbox
+        scale_x = MAIN_RES[0] / LORES_RES[0]
+        scale_y = MAIN_RES[1] / LORES_RES[1]
+        top_left = (int(x * scale_x), int(y * scale_y))
+        bottom_right = (int((x + w) * scale_x), int((y + h) * scale_y))
+        cv2.rectangle(frame, top_left, bottom_right, (0, 0, 255), 3)
+
+        cv2.imwrite(photo_path, frame)
         print(f"Motion detected! Photo saved as {photo_path}")
-        print(f"  Trigger values: contour_area={contour_area:.0f}, contour_threshold={self.contour_threshold}, thresh_value={self.thresh_value}")
+        print(f"  Trigger values: contour_area={contour_area:.0f}, contour_threshold={self.contour_threshold}, "
+              f"thresh_value={self.thresh_value}, bbox(lores)={bbox}")
 
         # Sidecar file recording the values that triggered this capture, so the web UI
         # can show them next to the photo to help tune sensitivity settings.
@@ -141,6 +156,7 @@ class DoorCamera:
                 'contour_area': contour_area,
                 'contour_threshold': self.contour_threshold,
                 'thresh_value': self.thresh_value,
+                'bbox': bbox,
             }, f)
 
         cleanup_old_files(self.save_dir)

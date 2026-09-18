@@ -44,6 +44,9 @@
                             <span class="text-muted">
                                 Triggered at area {{ "%.0f"|format(img.trigger.contour_area) }}
                                 (threshold {{ img.trigger.contour_threshold }}, sensitivity {{ img.trigger.thresh_value }})
+                                {% if img.trigger.bbox %}
+                                <br>Location (lores coords): {{ img.trigger.bbox }}
+                                {% endif %}
                             </span>
                             {% endif %}
                         </p>
