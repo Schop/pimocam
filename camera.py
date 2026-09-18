@@ -113,10 +113,14 @@ class DoorCamera:
         encoder = H264Encoder(framerate=RECORDING_FPS)
         output = FfmpegOutput(clip_path)
         try:
+            print("DEBUG: calling start_recording", flush=True)
             self.picam2.start_recording(encoder, output)
+            print("DEBUG: start_recording returned, sleeping", flush=True)
             time.sleep(MOTION_CLIP_SECONDS)
+            print("DEBUG: sleep done, calling stop_recording", flush=True)
         finally:
             self.picam2.stop_recording()
+            print("DEBUG: stop_recording returned", flush=True)
         print(f"Clip saved as {clip_path}")
         cleanup_old_files(self.clips_dir)
 
