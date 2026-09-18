@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Door Camera - Settings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Motion Sensitivity Settings</h1>
+        <a href="/" class="btn btn-info mb-4">Back to Photos</a>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="post" action="/settings">
+            <div class="mb-3">
+                <label for="contour_threshold" class="form-label">Contour Threshold</label>
+                <input type="number" step="1" min="1" max="100000" class="form-control"
+                       id="contour_threshold" name="contour_threshold" value="{{ contour_threshold }}" required>
+                <div class="form-text">
+                    Minimum size (in pixels) a moving blob must be to count as motion.
+                    Raise this to ignore small movement like leaves or blowing debris. Default: 800.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="thresh_value" class="form-label">Background Sensitivity</label>
+                <input type="number" step="1" min="1" max="200" class="form-control"
+                       id="thresh_value" name="thresh_value" value="{{ thresh_value }}" required>
+                <div class="form-text">
+                    How different a pixel must be from the learned background to be flagged as motion.
+                    Raise this to make the camera less twitchy in windy/leafy conditions. Default: 40.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="dilate_iterations" class="form-label">Dilate Iterations</label>
+                <input type="number" step="1" min="0" max="10" class="form-control"
+                       id="dilate_iterations" name="dilate_iterations" value="{{ dilate_iterations }}" required>
+                <div class="form-text">
+                    How much detected motion regions are grown before measuring their size.
+                    Higher values merge scattered small motion into fewer, larger blobs. Default: 2.
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <a href="/" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>

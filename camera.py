@@ -1,6 +1,7 @@
 import cv2
 import time
 import os
+import json
 import threading
 import shutil
 from picamera2 import Picamera2
@@ -12,6 +13,20 @@ from settings import (
     MOTION_COOLDOWN_SECONDS, MOTION_CLIP_SECONDS, MOTION_IGNORE_ZONES,
     MIN_FREE_GB,
 )
+
+RUNTIME_SETTINGS_PATH = os.path.join(os.path.dirname(__file__), 'runtime_settings.json')
+
+
+def _load_runtime_overrides():
+    """Read runtime_settings.json if present; return {} on missing/corrupt file."""
+    if not os.path.exists(RUNTIME_SETTINGS_PATH):
+        return {}
+    try:
+        with open(RUNTIME_SETTINGS_PATH) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Warning: could not read {RUNTIME_SETTINGS_PATH}: {e}; using settings.py defaults")
+        return {}
 
 
 def cleanup_old_files(directory, min_free_gb=MIN_FREE_GB):
@@ -42,6 +57,11 @@ class DoorCamera:
         self.thread = None
         self.last_capture = 0
 
+        overrides = _load_runtime_overrides()
+        self.contour_threshold = overrides.get('contour_threshold', CONTOUR_THRESHOLD)
+        self.thresh_value = overrides.get('thresh_value', THRESH_VALUE)
+        self.dilate_iterations = overrides.get('dilate_iterations', DILATE_ITERATIONS)
+
     def start(self):
         if self.running:
             return
@@ -56,7 +76,7 @@ class DoorCamera:
             self.picam2.configure(config)
             self.picam2.start()
             time.sleep(2)
-            self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=THRESH_VALUE, detectShadows=True)
+            self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=self.thresh_value, detectShadows=True)
             # Warm up the background model so repetitive motion (e.g. a plant swaying)
             # is learned as background before the detection loop starts acting on it.
             for _ in range(50):
@@ -96,11 +116,11 @@ class DoorCamera:
             # Blank out configured ignore zones (e.g. wind-blown foliage) before looking for motion
             for x1, y1, x2, y2 in MOTION_IGNORE_ZONES:
                 cv2.rectangle(fgmask, (x1, y1), (x2, y2), 0, -1)
-            fgmask = cv2.dilate(fgmask, None, iterations=DILATE_ITERATIONS)
+            fgmask = cv2.dilate(fgmask, None, iterations=self.dilate_iterations)
             contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             largest = max(contours, key=cv2.contourArea, default=None)
             max_area = cv2.contourArea(largest) if largest is not None else 0
-            motion_detected = max_area > CONTOUR_THRESHOLD
+            motion_detected = max_area > self.contour_threshold
             if motion_detected and (time.time() - self.last_capture) >= MOTION_COOLDOWN_SECONDS:
                 self.last_capture = time.time()
                 self._capture_event()
@@ -139,6 +159,40 @@ class DoorCamera:
         else:
             print("Camera not initialized")
             return None
+
+    def update_settings(self, contour_threshold=None, thresh_value=None, dilate_iterations=None):
+        """Validate and apply new motion-sensitivity settings live, then persist them.
+        Raises ValueError on invalid input; nothing is applied or persisted in that case."""
+        new_contour = self.contour_threshold if contour_threshold is None else contour_threshold
+        new_thresh = self.thresh_value if thresh_value is None else thresh_value
+        new_dilate = self.dilate_iterations if dilate_iterations is None else dilate_iterations
+
+        if not isinstance(new_contour, int) or not (1 <= new_contour <= 100000):
+            raise ValueError("Contour threshold must be an integer between 1 and 100000.")
+        if not isinstance(new_thresh, (int, float)) or not (1 <= new_thresh <= 200):
+            raise ValueError("Sensitivity threshold must be a number between 1 and 200.")
+        if not isinstance(new_dilate, int) or not (0 <= new_dilate <= 10):
+            raise ValueError("Dilate iterations must be an integer between 0 and 10.")
+
+        self.contour_threshold = new_contour
+        self.thresh_value = new_thresh
+        self.dilate_iterations = new_dilate
+
+        if self.bg_subtractor is not None:
+            self.bg_subtractor.setVarThreshold(self.thresh_value)
+
+        self._save_runtime_overrides()
+
+    def _save_runtime_overrides(self):
+        data = {
+            'contour_threshold': self.contour_threshold,
+            'thresh_value': self.thresh_value,
+            'dilate_iterations': self.dilate_iterations,
+        }
+        tmp_path = RUNTIME_SETTINGS_PATH + '.tmp'
+        with open(tmp_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, RUNTIME_SETTINGS_PATH)
 
 
 # Global instance

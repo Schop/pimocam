@@ -21,9 +21,10 @@ coverage.xml
 .pytest_cache
 .hypothesis
 
-# Captured media (created at runtime on the Pi)
+# Captured media and runtime state (created at runtime on the Pi)
 pictures/
 clips/
+runtime_settings.json
 
 # SQLite temporary files (don't commit these)
 *.db-journal

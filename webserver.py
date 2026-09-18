@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, render_template, flash, redirect, url_for
+from flask import Flask, send_from_directory, render_template, flash, redirect, url_for, request
 import os
 import logging
 import shutil
@@ -116,6 +116,39 @@ def stop():
     except Exception as e:
         flash(f"Failed to stop motion detection: {str(e)}")
     return redirect(url_for('index'))
+
+
+@app.route('/settings', methods=['GET'])
+def settings_page():
+    return render_template(
+        'settings.html',
+        contour_threshold=camera.contour_threshold,
+        thresh_value=camera.thresh_value,
+        dilate_iterations=camera.dilate_iterations,
+    )
+
+
+@app.route('/settings', methods=['POST'])
+def settings_update():
+    try:
+        contour_threshold = int(request.form['contour_threshold'])
+        thresh_value = float(request.form['thresh_value'])
+        dilate_iterations = int(request.form['dilate_iterations'])
+    except (KeyError, ValueError):
+        flash('Invalid input: all fields must be numbers.', 'danger')
+        return redirect(url_for('settings_page'))
+
+    try:
+        camera.update_settings(
+            contour_threshold=contour_threshold,
+            thresh_value=thresh_value,
+            dilate_iterations=dilate_iterations,
+        )
+        flash('Motion sensitivity settings updated.', 'success')
+    except ValueError as e:
+        flash(str(e), 'danger')
+
+    return redirect(url_for('settings_page'))
 
 
 if __name__ == '__main__':
