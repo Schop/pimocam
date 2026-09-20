@@ -1,22 +1,28 @@
-<nav class="navbar navbar-expand navbar-dark bg-dark mb-4 sticky-top">
+<nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand" href="/">Door Camera</a>
-        <div class="navbar-nav me-auto">
-            <a class="nav-link {% if request.path == '/' %}active fw-bold{% endif %}" href="/">Photos</a>
-            <a class="nav-link {% if request.path == '/clips' %}active fw-bold{% endif %}" href="/clips">Clips</a>
-            <a class="nav-link {% if request.path == '/settings' %}active fw-bold{% endif %}" href="/settings">Settings</a>
-        </div>
-        <div class="d-flex align-items-center">
-            <form method="post" action="/capture" class="me-2">
-                <button type="submit" class="btn btn-outline-light btn-sm" {% if not camera_running %}disabled title="Camera is stopped"{% endif %}>Take Photo</button>
-            </form>
-            {% if camera_running %}
-                <span class="badge bg-success me-2">Running</span>
-                <a href="/stop" class="btn btn-danger btn-sm">Stop</a>
-            {% else %}
-                <span class="badge bg-secondary me-2">Stopped</span>
-                <a href="/start" class="btn btn-success btn-sm">Start</a>
-            {% endif %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navContent">
+            <div class="navbar-nav me-auto">
+                <a class="nav-link {% if request.path == '/' %}active fw-bold{% endif %}" href="/">Photos</a>
+                <a class="nav-link {% if request.path == '/clips' %}active fw-bold{% endif %}" href="/clips">Clips</a>
+                <a class="nav-link {% if request.path == '/settings' %}active fw-bold{% endif %}" href="/settings">Settings</a>
+            </div>
+            <div class="d-flex align-items-center flex-wrap gap-2 py-2 py-md-0">
+                <form method="post" action="/capture" class="mb-0">
+                    <button type="submit" class="btn btn-outline-light btn-sm" {% if not camera_running %}disabled title="Camera is stopped"{% endif %}>Take Photo</button>
+                </form>
+                {% if camera_running %}
+                    <span class="badge bg-success">Running</span>
+                    <a href="/stop" class="btn btn-danger btn-sm">Stop</a>
+                {% else %}
+                    <span class="badge bg-secondary">Stopped</span>
+                    <a href="/start" class="btn btn-success btn-sm">Start</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
