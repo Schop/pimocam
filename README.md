@@ -17,6 +17,7 @@ A Python-based motion-triggered camera for a Raspberry Pi, watching a front door
 ## Configuration
 - Edit `settings.py` to customize save directories, camera resolutions, and motion detection tuning (sensitivity, minimum motion size, cooldown, clip length, ignore zones).
 - Set `SAVE_DIR`/`CLIPS_DIR` environment variables to override the default save locations.
+- Optional remote backup: set `SFTP_ENABLED=true` plus `SFTP_HOST`, `SFTP_PORT`, `SFTP_USERNAME`, `SFTP_PASSWORD`, and `SFTP_REMOTE_DIR` as environment variables to push every captured photo/clip to a remote SFTP server (files also stay on local disk). Never put these values directly in `settings.py`.
 
 ## Web Interface
 - Access at `http://your_pi_ip:5000`

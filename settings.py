@@ -27,3 +27,13 @@ MIN_FREE_GB = 10.0  # Minimum free disk space in GB before deleting old files
 # Webserver settings
 WEBSERVER_HOST = '0.0.0.0'
 WEBSERVER_PORT = 5000
+
+# Remote SFTP backup (optional). Every captured photo/clip is also pushed to this server,
+# in addition to staying on local disk. These are secrets/environment-specific, so they must
+# be set as environment variables (e.g. in the systemd unit) - never hardcode them here.
+SFTP_ENABLED = os.getenv('SFTP_ENABLED', 'false').lower() == 'true'
+SFTP_HOST = os.getenv('SFTP_HOST', '')
+SFTP_PORT = int(os.getenv('SFTP_PORT', '22'))
+SFTP_USERNAME = os.getenv('SFTP_USERNAME', '')
+SFTP_PASSWORD = os.getenv('SFTP_PASSWORD', '')
+SFTP_REMOTE_DIR = os.getenv('SFTP_REMOTE_DIR', '/pimocam')  # photos/clips go in subdirs of this

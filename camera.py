@@ -7,6 +7,7 @@ import shutil
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FfmpegOutput
+from sftp_uploader import upload_file
 from settings import (
     SAVE_DIR, CLIPS_DIR, MAIN_RES, LORES_RES, RECORDING_FPS,
     CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS,
@@ -147,6 +148,7 @@ class DoorCamera:
         print(f"Motion detected! Photo saved as {photo_path}")
         print(f"  Trigger values: contour_area={contour_area:.0f}, contour_threshold={self.contour_threshold}, "
               f"thresh_value={self.thresh_value}, bbox(lores)={bbox}")
+        threading.Thread(target=upload_file, args=(photo_path, 'photos'), daemon=True).start()
 
         # Sidecar file recording the values that triggered this capture, so the web UI
         # can show them next to the photo to help tune sensitivity settings.
@@ -174,6 +176,7 @@ class DoorCamera:
             self.picam2.stop()
             self.picam2.start()
         print(f"Clip saved as {clip_path}")
+        threading.Thread(target=upload_file, args=(clip_path, 'clips'), daemon=True).start()
         cleanup_old_files(self.clips_dir)
 
     def capture_image(self):
