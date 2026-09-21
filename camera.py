@@ -160,6 +160,7 @@ class DoorCamera:
                 'thresh_value': self.thresh_value,
                 'bbox': bbox,
             }, f)
+        threading.Thread(target=upload_file, args=(metadata_path, 'photos'), daemon=True).start()
 
         cleanup_old_files(self.save_dir)
 
