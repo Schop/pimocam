@@ -190,6 +190,7 @@ class DoorCamera:
         filename = os.path.join(self.save_dir, f"capture_{timestamp}.jpg")
         self.picam2.capture_file(filename)
         print(f"Image captured: {filename}")
+        threading.Thread(target=upload_file, args=(filename, 'photos'), daemon=True).start()
         cleanup_old_files(self.save_dir)
         return filename
 
