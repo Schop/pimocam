@@ -24,10 +24,11 @@ $files = array_slice($files, 0, 25);
                 $name = basename($path);
                 $mtime = date('Y-m-d H:i:s', filemtime($path));
                 $mediaUrl = 'media.php?type=clips&name=' . rawurlencode($name);
+                $viewUrl = 'view_clip.php?name=' . rawurlencode($name);
             ?>
             <div class="col-md-4 mb-3">
                 <div class="card">
-                    <a href="<?= htmlspecialchars($mediaUrl) ?>" target="_blank">
+                    <a href="<?= htmlspecialchars($viewUrl) ?>">
                         <video class="card-img-top" style="height: 200px; object-fit: cover;" muted>
                             <source src="<?= htmlspecialchars($mediaUrl) ?>" type="video/mp4">
                         </video>

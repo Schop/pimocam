@@ -26,10 +26,11 @@ $files = array_slice($files, 0, 25);
                 $json_path = $dir . '/' . pathinfo($name, PATHINFO_FILENAME) . '.json';
                 $trigger = is_file($json_path) ? json_decode(file_get_contents($json_path), true) : null;
                 $mediaUrl = 'media.php?type=photos&name=' . rawurlencode($name);
+                $viewUrl = 'view.php?name=' . rawurlencode($name);
             ?>
             <div class="col-md-3 mb-3">
                 <div class="card">
-                    <a href="<?= htmlspecialchars($mediaUrl) ?>" target="_blank">
+                    <a href="<?= htmlspecialchars($viewUrl) ?>">
                         <img src="<?= htmlspecialchars($mediaUrl) ?>" class="card-img-top" style="height: 150px; object-fit: cover;">
                     </a>
                     <div class="card-body">
