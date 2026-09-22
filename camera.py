@@ -8,6 +8,7 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FfmpegOutput
 from sftp_uploader import upload_file
+from ha_media import publish_to_ha
 from settings import (
     SAVE_DIR, CLIPS_DIR, MAIN_RES, LORES_RES, RECORDING_FPS,
     CONTOUR_THRESHOLD, MAX_CONTOUR_AREA, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS,
@@ -160,6 +161,7 @@ class DoorCamera:
         print(f"  Trigger values: contour_area={contour_area:.0f}, contour_threshold={self.contour_threshold}, "
               f"max_contour_area={self.max_contour_area}, thresh_value={self.thresh_value}, bbox(lores)={bbox}")
         threading.Thread(target=upload_file, args=(photo_path, 'photos'), daemon=True).start()
+        threading.Thread(target=publish_to_ha, args=(photo_path, 'photos'), daemon=True).start()
 
         # Sidecar file recording the values that triggered this capture, so the web UI
         # can show them next to the photo to help tune sensitivity settings.
@@ -190,6 +192,7 @@ class DoorCamera:
             self.picam2.start()
         print(f"Clip saved as {clip_path}")
         threading.Thread(target=upload_file, args=(clip_path, 'clips'), daemon=True).start()
+        threading.Thread(target=publish_to_ha, args=(clip_path, 'clips'), daemon=True).start()
         cleanup_old_files(self.clips_dir)
 
     def capture_image(self):
@@ -203,6 +206,7 @@ class DoorCamera:
         self.picam2.capture_file(filename)
         print(f"Image captured: {filename}")
         threading.Thread(target=upload_file, args=(filename, 'photos'), daemon=True).start()
+        threading.Thread(target=publish_to_ha, args=(filename, 'photos'), daemon=True).start()
         cleanup_old_files(self.save_dir)
         return filename
 

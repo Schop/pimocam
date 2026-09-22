@@ -18,6 +18,7 @@ A Python-based motion-triggered camera for a Raspberry Pi, watching a front door
 - Edit `settings.py` to customize save directories, camera resolutions, and motion detection tuning (sensitivity, minimum motion size, cooldown, clip length, ignore zones).
 - Set `SAVE_DIR`/`CLIPS_DIR` environment variables to override the default save locations.
 - Optional remote backup: set `SFTP_ENABLED=true` plus `SFTP_HOST`, `SFTP_PORT`, `SFTP_USERNAME`, `SFTP_PASSWORD`, and `SFTP_REMOTE_DIR` as environment variables to push every captured photo/clip to a remote SFTP server (files also stay on local disk). Never put these values directly in `settings.py`. If you're using the remote gallery below, `SFTP_REMOTE_DIR` must point at the external data directory (**outside** the gallery's document root), not the docroot itself.
+- Optional Home Assistant media browser: set `HA_MEDIA_DIR` to a locally-mounted path to also copy every captured photo/clip there — see the section below.
 
 ## Web Interface
 - Access at `http://your_pi_ip:5000`
@@ -36,10 +37,33 @@ If SFTP backup is enabled (see Configuration), `remote_gallery/` is a small PHP 
 
 Photos/clips are served through `media.php`, which checks the session before streaming anything and validates the requested filename, so the media stays inaccessible without logging in first — no `.htaccess` or web server configuration required.
 
+## Home Assistant media browser
+If you run Home Assistant OS/Supervised on the same network, photos/clips can be copied to it so they show up automatically in HA's built-in Media Browser (no HA-side YAML or entity setup needed).
+
+1. On Home Assistant: Settings > Add-ons > Add-on Store, install the official **Samba share** add-on, set/confirm its username+password, and start it. This exposes HA's `/media` folder over the network.
+2. On the Pi: `sudo apt install -y cifs-utils`
+3. Create `/etc/samba/ha-media-credentials` (mode 600) with:
+   ```
+   username=<samba user>
+   password=<samba password>
+   domain=WORKGROUP
+   ```
+4. `sudo mkdir -p /mnt/ha_media`
+5. Add to `/etc/fstab` (replace `<HA_IP>` and `<pi-user>`):
+   ```
+   //<HA_IP>/media /mnt/ha_media cifs credentials=/etc/samba/ha-media-credentials,uid=<pi-user>,gid=<pi-user>,iocharset=utf8,vers=3.0,_netdev,nofail 0 0
+   ```
+   `nofail` matters: if Home Assistant is unreachable at boot, the Pi must still boot and start the camera normally.
+6. `sudo mount -a` and confirm `/mnt/ha_media` is writable.
+7. Set `HA_MEDIA_DIR=/mnt/ha_media/pimocam` as an environment variable for the pimocam service.
+
+Captures are copied (not moved) into `$HA_MEDIA_DIR/photos` and `$HA_MEDIA_DIR/clips` in the background, same as the SFTP backup — a slow or unmounted share is logged as a warning and never blocks or fails a capture. Note there's no automatic cleanup of this folder; files accumulate there indefinitely, so keep an eye on Home Assistant's storage if it's on a small SD card.
+
 ## Files
 - `webserver.py`: Entry point and Flask web interface
 - `camera.py`: Camera lifecycle and motion detection/capture logic
 - `settings.py`: Configuration settings
 - `sftp_uploader.py`: Optional SFTP backup of captures to a remote server
+- `ha_media.py`: Optional copy of captures into a Home Assistant media share
 - `remote_gallery/`: Optional PHP gallery for browsing the SFTP-uploaded copies remotely
 - `requirements.txt`: Dependencies

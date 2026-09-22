@@ -39,3 +39,7 @@ SFTP_PORT = int(os.getenv('SFTP_PORT', '22'))
 SFTP_USERNAME = os.getenv('SFTP_USERNAME', '')
 SFTP_PASSWORD = os.getenv('SFTP_PASSWORD', '')
 SFTP_REMOTE_DIR = os.getenv('SFTP_REMOTE_DIR', '/pimocam')  # photos/clips go in subdirs of this
+
+# Optional: also copy every captured photo/clip into a network share (e.g. Home Assistant's
+# Samba-shared /media folder, mounted locally) so it shows up in Home Assistant's Media Browser.
+HA_MEDIA_DIR = os.getenv('HA_MEDIA_DIR', '')  # e.g. /mnt/ha_media/pimocam; blank disables this
