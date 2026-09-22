@@ -158,7 +158,7 @@ class DoorCamera:
         cv2.imwrite(photo_path, frame)
         print(f"Motion detected! Photo saved as {photo_path}")
         print(f"  Trigger values: contour_area={contour_area:.0f}, contour_threshold={self.contour_threshold}, "
-              f"thresh_value={self.thresh_value}, bbox(lores)={bbox}")
+              f"max_contour_area={self.max_contour_area}, thresh_value={self.thresh_value}, bbox(lores)={bbox}")
         threading.Thread(target=upload_file, args=(photo_path, 'photos'), daemon=True).start()
 
         # Sidecar file recording the values that triggered this capture, so the web UI
@@ -168,6 +168,7 @@ class DoorCamera:
             json.dump({
                 'contour_area': contour_area,
                 'contour_threshold': self.contour_threshold,
+                'max_contour_area': self.max_contour_area,
                 'thresh_value': self.thresh_value,
                 'bbox': bbox,
             }, f)
