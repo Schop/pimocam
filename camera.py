@@ -107,33 +107,40 @@ class DoorCamera:
 
     def _detect_loop(self):
         while self.running:
-            frame_yuv = self.picam2.capture_array("lores")
-            frame_gray = cv2.cvtColor(frame_yuv, cv2.COLOR_YUV2GRAY_I420)
-            frame_gray = cv2.GaussianBlur(frame_gray, (BLUR_KERNEL, BLUR_KERNEL), 0)
-            # Update the adaptive background model and get the foreground mask
-            fgmask = self.bg_subtractor.apply(frame_gray)
-            # Drop shadow pixels (value 127) that MOG2 flags separately from real foreground (255)
-            fgmask = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)[1]
-            # Blank out configured ignore zones (e.g. wind-blown foliage) before looking for motion
-            for x1, y1, x2, y2 in MOTION_IGNORE_ZONES:
-                cv2.rectangle(fgmask, (x1, y1), (x2, y2), 0, -1)
-            fgmask = cv2.dilate(fgmask, None, iterations=self.dilate_iterations)
-            contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            largest = max(contours, key=cv2.contourArea, default=None)
-            max_area = cv2.contourArea(largest) if largest is not None else 0
-            motion_detected = max_area > self.contour_threshold
-            if motion_detected and (time.time() - self.last_capture) >= MOTION_COOLDOWN_SECONDS:
-                self.last_capture = time.time()
-                # Bounding box of the triggering blob, in lores (640x480) coordinates -
-                # same coordinate space as MOTION_IGNORE_ZONES.
-                bbox = cv2.boundingRect(largest)
-                self._capture_event(max_area, bbox)
+            # Pull lores + main from a single request so they're the exact same instant -
+            # two separate capture_array() calls would let the object keep moving between
+            # the frame that trips detection and the frame actually saved as the photo.
+            request = self.picam2.capture_request()
+            try:
+                frame_yuv = request.make_array("lores")
+                frame_gray = cv2.cvtColor(frame_yuv, cv2.COLOR_YUV2GRAY_I420)
+                frame_gray = cv2.GaussianBlur(frame_gray, (BLUR_KERNEL, BLUR_KERNEL), 0)
+                # Update the adaptive background model and get the foreground mask
+                fgmask = self.bg_subtractor.apply(frame_gray)
+                # Drop shadow pixels (value 127) that MOG2 flags separately from real foreground (255)
+                fgmask = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)[1]
+                # Blank out configured ignore zones (e.g. wind-blown foliage) before looking for motion
+                for x1, y1, x2, y2 in MOTION_IGNORE_ZONES:
+                    cv2.rectangle(fgmask, (x1, y1), (x2, y2), 0, -1)
+                fgmask = cv2.dilate(fgmask, None, iterations=self.dilate_iterations)
+                contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                largest = max(contours, key=cv2.contourArea, default=None)
+                max_area = cv2.contourArea(largest) if largest is not None else 0
+                motion_detected = max_area > self.contour_threshold
+                if motion_detected and (time.time() - self.last_capture) >= MOTION_COOLDOWN_SECONDS:
+                    self.last_capture = time.time()
+                    # Bounding box of the triggering blob, in lores (640x480) coordinates -
+                    # same coordinate space as MOTION_IGNORE_ZONES.
+                    bbox = cv2.boundingRect(largest)
+                    frame = request.make_array("main")
+                    self._capture_event(max_area, bbox, frame)
+            finally:
+                request.release()
             time.sleep(0.1)
 
-    def _capture_event(self, contour_area, bbox):
+    def _capture_event(self, contour_area, bbox, frame):
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         photo_path = os.path.join(self.save_dir, f"motion_{timestamp}.jpg")
-        frame = self.picam2.capture_array("main")
 
         # Draw the triggering blob's bounding box on the saved photo, scaled up from the
         # lores detection frame to the main frame, so it's obvious what caused the capture.
