@@ -11,6 +11,8 @@ RECORDING_FPS = 15  # Fixed capture rate; must match what the encoder assumes or
 
 # Motion detection settings
 CONTOUR_THRESHOLD = 800  # Minimum contour area for motion detection (people/animals/cars, not small birds)
+MAX_CONTOUR_AREA = 100000  # Upper bound on contour area; blobs bigger than this (e.g. a cloud shadow
+                            # sweeping the whole scene) are ignored rather than treated as motion
 BLUR_KERNEL = 15  # Gaussian blur kernel size (must be odd)
 THRESH_VALUE = 40  # Sensitivity of the background model (MOG2 varThreshold)
 DILATE_ITERATIONS = 2  # Dilate iterations

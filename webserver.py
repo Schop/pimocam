@@ -187,6 +187,7 @@ def settings_page():
     return render_template(
         'settings.html',
         contour_threshold=camera.contour_threshold,
+        max_contour_area=camera.max_contour_area,
         thresh_value=camera.thresh_value,
         dilate_iterations=camera.dilate_iterations,
     )
@@ -196,6 +197,7 @@ def settings_page():
 def settings_update():
     try:
         contour_threshold = int(request.form['contour_threshold'])
+        max_contour_area = int(request.form['max_contour_area'])
         thresh_value = float(request.form['thresh_value'])
         dilate_iterations = int(request.form['dilate_iterations'])
     except (KeyError, ValueError):
@@ -205,6 +207,7 @@ def settings_update():
     try:
         camera.update_settings(
             contour_threshold=contour_threshold,
+            max_contour_area=max_contour_area,
             thresh_value=thresh_value,
             dilate_iterations=dilate_iterations,
         )

@@ -10,7 +10,7 @@ from picamera2.outputs import FfmpegOutput
 from sftp_uploader import upload_file
 from settings import (
     SAVE_DIR, CLIPS_DIR, MAIN_RES, LORES_RES, RECORDING_FPS,
-    CONTOUR_THRESHOLD, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS,
+    CONTOUR_THRESHOLD, MAX_CONTOUR_AREA, BLUR_KERNEL, THRESH_VALUE, DILATE_ITERATIONS,
     MOTION_COOLDOWN_SECONDS, MOTION_CLIP_SECONDS, MOTION_IGNORE_ZONES,
     MIN_FREE_GB,
 )
@@ -60,6 +60,7 @@ class DoorCamera:
 
         overrides = _load_runtime_overrides()
         self.contour_threshold = overrides.get('contour_threshold', CONTOUR_THRESHOLD)
+        self.max_contour_area = overrides.get('max_contour_area', MAX_CONTOUR_AREA)
         self.thresh_value = overrides.get('thresh_value', THRESH_VALUE)
         self.dilate_iterations = overrides.get('dilate_iterations', DILATE_ITERATIONS)
 
@@ -126,7 +127,10 @@ class DoorCamera:
                 contours, _ = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 largest = max(contours, key=cv2.contourArea, default=None)
                 max_area = cv2.contourArea(largest) if largest is not None else 0
-                motion_detected = max_area > self.contour_threshold
+                # Cap out unusually huge blobs (e.g. a cloud shadow sweeping the whole scene) -
+                # real subjects fall well under this even up close, since it's an upper bound
+                # on the largest single contour, not the whole frame's foreground coverage.
+                motion_detected = self.contour_threshold < max_area <= self.max_contour_area
                 if motion_detected and (time.time() - self.last_capture) >= MOTION_COOLDOWN_SECONDS:
                     self.last_capture = time.time()
                     # Bounding box of the triggering blob, in lores (640x480) coordinates -
@@ -201,21 +205,27 @@ class DoorCamera:
         cleanup_old_files(self.save_dir)
         return filename
 
-    def update_settings(self, contour_threshold=None, thresh_value=None, dilate_iterations=None):
+    def update_settings(self, contour_threshold=None, max_contour_area=None, thresh_value=None, dilate_iterations=None):
         """Validate and apply new motion-sensitivity settings live, then persist them.
         Raises ValueError on invalid input; nothing is applied or persisted in that case."""
         new_contour = self.contour_threshold if contour_threshold is None else contour_threshold
+        new_max_area = self.max_contour_area if max_contour_area is None else max_contour_area
         new_thresh = self.thresh_value if thresh_value is None else thresh_value
         new_dilate = self.dilate_iterations if dilate_iterations is None else dilate_iterations
 
         if not isinstance(new_contour, int) or not (1 <= new_contour <= 100000):
             raise ValueError("Contour threshold must be an integer between 1 and 100000.")
+        if not isinstance(new_max_area, int) or not (1 <= new_max_area <= 100000):
+            raise ValueError("Max contour area must be an integer between 1 and 100000.")
+        if new_max_area <= new_contour:
+            raise ValueError("Max contour area must be greater than the contour threshold.")
         if not isinstance(new_thresh, (int, float)) or not (1 <= new_thresh <= 200):
             raise ValueError("Sensitivity threshold must be a number between 1 and 200.")
         if not isinstance(new_dilate, int) or not (0 <= new_dilate <= 10):
             raise ValueError("Dilate iterations must be an integer between 0 and 10.")
 
         self.contour_threshold = new_contour
+        self.max_contour_area = new_max_area
         self.thresh_value = new_thresh
         self.dilate_iterations = new_dilate
 
@@ -227,6 +237,7 @@ class DoorCamera:
     def _save_runtime_overrides(self):
         data = {
             'contour_threshold': self.contour_threshold,
+            'max_contour_area': self.max_contour_area,
             'thresh_value': self.thresh_value,
             'dilate_iterations': self.dilate_iterations,
         }

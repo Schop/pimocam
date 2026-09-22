@@ -31,6 +31,16 @@
                 </div>
             </div>
             <div class="mb-3">
+                <label for="max_contour_area" class="form-label">Max Contour Area</label>
+                <input type="number" step="1" min="1" max="100000" class="form-control"
+                       id="max_contour_area" name="max_contour_area" value="{{ max_contour_area }}" required>
+                <div class="form-text">
+                    Largest a moving blob is allowed to be to still count as motion.
+                    Lower this to reject whole-scene lighting changes (e.g. a cloud shadow sweeping
+                    across the frame), which show up as one unusually large blob. Default: 100000.
+                </div>
+            </div>
+            <div class="mb-3">
                 <label for="thresh_value" class="form-label">Background Sensitivity</label>
                 <input type="number" step="1" min="1" max="200" class="form-control"
                        id="thresh_value" name="thresh_value" value="{{ thresh_value }}" required>
