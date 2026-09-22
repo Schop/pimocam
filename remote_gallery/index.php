@@ -73,7 +73,8 @@ unset($_SESSION['flash']);
                                 <br>
                                 <span class="text-muted">
                                     Triggered at area <?= (int)$trigger['contour_area'] ?>
-                                    (threshold <?= htmlspecialchars($trigger['contour_threshold']) ?>, sensitivity <?= htmlspecialchars($trigger['thresh_value']) ?>)
+                                    (threshold <?= htmlspecialchars($trigger['contour_threshold']) ?>, max <?= htmlspecialchars($trigger['max_contour_area'] ?? '?') ?>,
+                                    sensitivity <?= htmlspecialchars($trigger['thresh_value']) ?>)
                                     <?php if (!empty($trigger['bbox'])): ?>
                                     <br>Location: (<?= htmlspecialchars(implode(', ', $trigger['bbox'])) ?>)
                                     <?php endif; ?>
